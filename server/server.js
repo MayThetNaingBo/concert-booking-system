@@ -8,8 +8,8 @@ const cors = require("cors");
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://concert-booking-system.vercel.app"
-  ],
+    /\.vercel\.app$/
+],
   credentials: true
 }));
 app.use(express.json());
