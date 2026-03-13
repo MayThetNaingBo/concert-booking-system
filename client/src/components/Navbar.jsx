@@ -5,23 +5,36 @@ function Navbar() {
   const [token, setToken] = useState(localStorage.getItem("token"));
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showLoginToast, setShowLoginToast] = useState(false);
+  const[showRegisterToast, setShowRegisterToast] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleAuthChange = () => {
-      const newToken = localStorage.getItem("token");
-      const prevToken = token;
-      setToken(newToken);
-      // Show success toast when logging in (token goes from null to having a value)
-      if (!prevToken && newToken) {
-        setShowLoginToast(true);
-        setTimeout(() => setShowLoginToast(false), 3500);
-      }
-    };
 
-    window.addEventListener("authChanged", handleAuthChange);
-    return () => window.removeEventListener("authChanged", handleAuthChange);
-  }, [token]);
+  const handleAuthChange = () => {
+    const newToken = localStorage.getItem("token");
+    const prevToken = token;
+    setToken(newToken);
+
+    if (!prevToken && newToken) {
+      setShowLoginToast(true);
+      setTimeout(() => setShowLoginToast(false), 3500);
+    }
+  };
+
+  const handleRegisterSuccess = () => {
+    setShowRegisterToast(true);
+    setTimeout(() => setShowRegisterToast(false), 3500);
+  };
+
+  window.addEventListener("authChanged", handleAuthChange);
+  window.addEventListener("registerSuccess", handleRegisterSuccess);
+
+  return () => {
+    window.removeEventListener("authChanged", handleAuthChange);
+    window.removeEventListener("registerSuccess", handleRegisterSuccess);
+  };
+
+}, [token]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -107,7 +120,7 @@ function Navbar() {
         }
 
         /* ── Login Success Toast ── */
-        .login-toast {
+        .toast {
           position: fixed;
           bottom: 2rem;
           right: 2rem;
@@ -328,7 +341,7 @@ function Navbar() {
 
       {/* ── Login Success Toast ── */}
       {showLoginToast && (
-        <div className="login-toast">
+        <div className="toast">
           <div className="toast-icon">✓</div>
           <div className="toast-text">
             <div className="toast-title">Login Successful</div>
@@ -337,6 +350,17 @@ function Navbar() {
           <div className="toast-bar" />
         </div>
       )}
+      {/* ── Register Success Toast ── */}
+{showRegisterToast && (
+  <div className="toast">
+    <div className="toast-icon">✓</div>
+    <div className="toast-text">
+      <div className="toast-title">Sign Up Successful</div>
+      <div className="toast-sub">Welcome to ConcertHub</div>
+    </div>
+    <div className="toast-bar" />
+  </div>
+)}
 
       {/* ── Logout Confirmation Modal ── */}
       {showLogoutModal && (
