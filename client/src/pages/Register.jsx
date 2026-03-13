@@ -43,7 +43,7 @@ try {
       // Save token
       localStorage.setItem("token", data.token);
 
-      alert("Account created!");
+      window.dispatchEvent(new Event("authChanged"));
 
       navigate("/");
 
