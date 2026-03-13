@@ -11,7 +11,7 @@ function MyBookings() {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        "http://localhost:5000/api/bookings/myBookings",
+        "https://concert-booking-api.onrender.com/api/bookings/myBookings",
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -62,7 +62,7 @@ function MyBookings() {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        `http://localhost:5000/api/bookings/${bookingId}`,
+        `https://concert-booking-api.onrender.com/api/bookings/${bookingId}`,
         {
           method: "DELETE",
           headers: {
@@ -88,7 +88,7 @@ function MyBookings() {
   const handlePayment = async (booking) => {
     try {
       const res = await fetch(
-        "http://localhost:5000/api/payment/checkout",
+        "https://concert-booking-api.onrender.com/api/payment/checkout",
         {
           method: "POST",
           headers: {

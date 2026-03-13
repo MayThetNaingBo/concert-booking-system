@@ -279,7 +279,7 @@ function Ticket() {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        `http://localhost:5000/api/bookings/${id}`,
+        `https://concert-booking-api.onrender.com/api/bookings/${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
