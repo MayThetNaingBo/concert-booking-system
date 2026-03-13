@@ -311,7 +311,7 @@ function Navbar() {
 
       <nav className="navbar">
         <Link to="/" className="navbar-logo">
-          <img src="/src/assets/logo.png" alt="ConcertHub Logo" className="navbar-logo-img" />
+          <img src="/logo.png" alt="ConcertHub Logo" className="navbar-logo-img" />
           ConcertHub
         </Link>
 
