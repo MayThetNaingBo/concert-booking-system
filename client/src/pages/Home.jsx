@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getConcerts } from "../services/concertService";
 import ConcertCard from "../components/ConcertCard";
-import Hero from "../components/hero";
+import Hero from "../components/Hero";
 
 function Home() {
   const [concerts, setConcerts] = useState([]);
