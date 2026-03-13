@@ -1,0 +1,5 @@
+node_modules
+.env
+distgit
+build
+.DS_Store

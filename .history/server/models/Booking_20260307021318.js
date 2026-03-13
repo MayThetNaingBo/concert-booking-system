@@ -1,0 +1,24 @@
+const mongoose = require("mongoose");
+
+const bookingSchema = new mongoose.Schema({
+
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  },
+
+  concert: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Concert"
+  },
+
+  seats: [String],
+
+  totalPrice: Number,
+
+  bookedAt: {
+    type: Date,
+    default: Date.now
+  }
+
+});
