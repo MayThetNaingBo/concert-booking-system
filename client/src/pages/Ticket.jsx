@@ -265,49 +265,162 @@ const styles = `
     letter-spacing: 0.2em;
     color: rgba(255,255,255,0.4);
   }
+
+  .message-card {
+    width: 100%;
+    max-width: 430px;
+    background: #1c1c1e;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 32px;
+    text-align: center;
+    color: white;
+    box-shadow: 0 28px 70px rgba(0,0,0,0.8);
+    animation: fadeIn 0.5s ease forwards;
+  }
+
+  .message-title {
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+
+  .message-text {
+    color: rgba(255,255,255,0.65);
+    line-height: 1.6;
+    margin-bottom: 22px;
+  }
+
+  .refresh-btn {
+    padding: 12px 18px;
+    border-radius: 8px;
+    border: none;
+    background: #e8a020;
+    color: #111;
+    font-weight: 700;
+    cursor: pointer;
+  }
 `;
 
 function Ticket() {
-
   const { id } = useParams();
   const [ticket, setTicket] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-
     const fetchTicket = async () => {
+      try {
+        const token = localStorage.getItem("token");
 
-      const token = localStorage.getItem("token");
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/bookings/${id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-      const res = await fetch(
-        `https://concert-booking-api.onrender.com/api/bookings/${id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+        const data = await res.json();
 
-      const data = await res.json();
-      setTicket(data);
+        if (!res.ok) {
+          setError(data.message || "Failed to load ticket.");
+          return;
+        }
 
+        setTicket(data);
+      } catch (err) {
+        setError("Something went wrong while loading your ticket.");
+      }
     };
 
     fetchTicket();
-
   }, [id]);
 
-  if (!ticket) return <div className="page">Loading ticket...</div>;
+  if (error) {
+    return (
+      <>
+        <style>{styles}</style>
 
-  const formattedDate = new Date(ticket.concert?.date).toLocaleDateString("en-SG", {
+        <div className="page">
+          <div className="message-card">
+            <h2 className="message-title">Unable to Load Ticket</h2>
+
+            <p className="message-text">{error}</p>
+
+            <button className="refresh-btn" onClick={() => window.location.reload()}>
+              Try Again
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (!ticket) {
+    return (
+      <>
+        <style>{styles}</style>
+
+        <div className="page">
+          <div className="message-card">
+            <h2 className="message-title">Loading ticket...</h2>
+
+            <p className="message-text">
+              Please wait while we load your ticket details.
+            </p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  const isTicketReady =
+    ticket.status === "confirmed" &&
+    ticket.qrSecret &&
+    ticket.concert &&
+    ticket.concert.title &&
+    ticket.concert.date &&
+    ticket.concert.startTime &&
+    ticket.seats &&
+    ticket.seats.length > 0 &&
+    ticket.totalPrice !== undefined &&
+    ticket.totalPrice !== null;
+
+  if (!isTicketReady) {
+    return (
+      <>
+        <style>{styles}</style>
+
+        <div className="page">
+          <div className="message-card">
+            <h2 className="message-title">Preparing your ticket...</h2>
+
+            <p className="message-text">
+              Your payment was successful. We are preparing your ticket now.
+              This usually takes a few seconds.
+            </p>
+
+            <button className="refresh-btn" onClick={() => window.location.reload()}>
+              Refresh Ticket
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  const formattedDate = new Date(ticket.concert.date).toLocaleDateString("en-SG", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   });
-
+const qrLink = `${window.location.origin}/staff/verify-ticket/${ticket._id}/${ticket.qrSecret}`;
   return (
     <>
       <style>{styles}</style>
 
       <div className="page">
-
         <div className="ticket">
-
           <div className="ticket-accent" />
 
           <div className="ticket-header">
@@ -315,18 +428,31 @@ function Ticket() {
               <span>🎟</span>
               <span className="header-title">Concert Ticket</span>
             </div>
+
             <span className="header-badge">Official</span>
           </div>
 
           <div className="artist-hero">
-
             <div className="artist-info">
-              <div className="artist-eyebrow">Live Performance · World Tour 2026</div>
-              <div className="artist-title">{ticket.concert?.title}</div>
-<div style={{ fontSize: "16px", fontWeight: 600, color: "#e8a020", letterSpacing: "0.08em", marginTop: "6px" }}>
-  {ticket.concert?.artist}
-</div>
-              <div className="concert-sub">{ticket.concert?.venue}</div>
+              <div className="artist-eyebrow">
+                Live Performance · World Tour 2026
+              </div>
+
+              <div className="artist-title">{ticket.concert.title}</div>
+
+              <div
+                style={{
+                  fontSize: "16px",
+                  fontWeight: 600,
+                  color: "#e8a020",
+                  letterSpacing: "0.08em",
+                  marginTop: "6px",
+                }}
+              >
+                {ticket.concert.artist}
+              </div>
+
+              <div className="concert-sub">{ticket.concert.venue}</div>
             </div>
 
             <div className="artist-meta">
@@ -337,18 +463,20 @@ function Ticket() {
 
               <div className="meta-pill">
                 <span className="meta-pill-label">Starting Time</span>
-                <span className="meta-pill-value">{ticket.concert?.startTime}</span>
+                <span className="meta-pill-value">
+                  {ticket.concert.startTime}
+                </span>
               </div>
             </div>
-
           </div>
 
           <div className="ticket-body">
-
             <div className="fields">
               <div className="field-row">
                 <span className="field-label">Name</span>
-                <span className="field-value">{ticket.user?.name}</span>
+                <span className="field-value">
+                  {ticket.user?.name || "Customer"}
+                </span>
               </div>
 
               <div className="field-row">
@@ -359,17 +487,28 @@ function Ticket() {
 
             <div className="seat-col">
               <span className="seat-label">Seat</span>
-              <span className="seat-number">{ticket.seats?.join(", ")}</span>
+              <span className="seat-number">{ticket.seats.join(", ")}</span>
 
-             <div className="price-block">
-  Total Paid
-  <div style={{ marginTop: "4px" }}>
-    <span style={{ fontSize: "11px", color: "#e8a020", letterSpacing: "0.15em", fontFamily: "Inter, sans-serif", fontWeight: 700 }}>SGD </span>
-    <span className="price-amount">{ticket.totalPrice}</span>
-  </div>
-</div>
+              <div className="price-block">
+                Total Paid
+
+                <div style={{ marginTop: "4px" }}>
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      color: "#e8a020",
+                      letterSpacing: "0.15em",
+                      fontFamily: "Inter, sans-serif",
+                      fontWeight: 700,
+                    }}
+                  >
+                    SGD{" "}
+                  </span>
+
+                  <span className="price-amount">{ticket.totalPrice}</span>
+                </div>
+              </div>
             </div>
-
           </div>
 
           <div className="perf">
@@ -379,22 +518,36 @@ function Ticket() {
           </div>
 
           <div className="ticket-stub">
-
             <div className="stub-left">
               <div className="stub-dot" />
               <span className="stub-title">Entry Pass</span>
             </div>
 
-            <QRCodeSVG
-  value={`${window.location.origin}/verify-ticket/${ticket._id}/${ticket.qrSecret}`}
-  size={64}
-  bgColor="#ffffff"
-  fgColor="#000000"
-/>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+  <QRCodeSVG
+    value={qrLink}
+    size={72}
+    bgColor="#ffffff"
+    fgColor="#000000"
+  />
+
+  <button
+    onClick={() => navigator.clipboard.writeText(qrLink)}
+    style={{
+      padding: "6px 10px",
+      borderRadius: "6px",
+      border: "none",
+      cursor: "pointer",
+      fontSize: "11px",
+      fontWeight: 200,
+      color: "whitesmoke",
+    }}
+  >
+    Copy QR Link
+  </button>
+</div>
           </div>
-
         </div>
-
       </div>
     </>
   );

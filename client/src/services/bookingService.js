@@ -1,5 +1,5 @@
 export const createBooking = async (concertId, seats, token) => {
-  const res = await fetch("https://concert-booking-api.onrender.com/api/bookings", {
+  const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

@@ -32,6 +32,7 @@ function Login() {
 
       // save token
       localStorage.setItem("token", data.token);
+localStorage.setItem("user", JSON.stringify(data.user));
 
       // notify navbar login happened
       window.dispatchEvent(new Event("authChanged"));

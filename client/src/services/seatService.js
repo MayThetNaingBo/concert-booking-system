@@ -1,4 +1,4 @@
-const API_URL = "https://concert-booking-api.onrender.com/api/concerts";
+const API_URL = `${import.meta.env.VITE_API_URL}/api/concerts`;
 
 export const getSeats = async (concertId) => {
   const res = await fetch(`${API_URL}/${concertId}/seats`);

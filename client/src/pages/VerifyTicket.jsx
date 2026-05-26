@@ -10,7 +10,7 @@ function VerifyTicket() {
     const verifyTicket = async () => {
       try {
         const res = await fetch(
-          `https://concert-booking-api.onrender.com/api/bookings/verify/${id}/${secret}`
+          `${import.meta.env.VITE_API_URL}/api/bookings/verify/${id}/${secret}`
         );
 
         const data = await res.json();

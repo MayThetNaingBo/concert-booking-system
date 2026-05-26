@@ -92,6 +92,7 @@ exports.getMyBookings = async (req, res) => {
 
     const bookings = await Booking.find({ user: req.user.id })
       .populate("concert")
+      .populate("user", "name email")
       .sort({ createdAt: -1 });
 
     res.json(bookings);
@@ -264,40 +265,102 @@ exports.verifyTicket = async (req, res) => {
   try {
     const { id, secret } = req.params;
 
-    const booking = await Booking.findById(id)
-      .populate("concert");
+    const booking = await Booking.findById(id).populate("concert") .populate("user", "name email");
 
     if (!booking || booking.qrSecret !== secret) {
       return res.status(404).json({
-        valid: false,
-        message: "Invalid ticket"
+        status: "INVALID",
+        message: "Invalid ticket",
       });
     }
 
     if (booking.status !== "confirmed") {
       return res.status(400).json({
-        valid: false,
-        message: "Ticket is not confirmed"
+        status: "INVALID",
+        message: "Ticket is not confirmed",
+      });
+    }
+
+    if (booking.checkedIn) {
+      return res.json({
+        status: "USED",
+        checkedIn: true,
+        checkedInAt: booking.checkedInAt,
+        bookingId: booking._id,
+        buyerName: booking.user?.name,
+buyerEmail: booking.user?.email,
+        concertName: booking.concert?.title,
+        artist: booking.concert?.artist,
+        venue: booking.concert?.venue,
+        date: booking.concert?.date,
+        startTime: booking.concert?.startTime,
+        seats: booking.seats,
       });
     }
 
     res.json({
-      valid: true,
-      checkedIn: booking.checkedIn,
-      checkedInAt: booking.checkedInAt,
+      status: "VALID",
+      checkedIn: false,
       bookingId: booking._id,
+      buyerName: booking.user?.name,
+buyerEmail: booking.user?.email,
       concertName: booking.concert?.title,
       artist: booking.concert?.artist,
       venue: booking.concert?.venue,
       date: booking.concert?.date,
       startTime: booking.concert?.startTime,
-      seats: booking.seats
+      seats: booking.seats,
     });
-
   } catch (error) {
     res.status(500).json({
-      valid: false,
-      message: error.message
+      status: "ERROR",
+      message: error.message,
+    });
+  }
+};
+
+exports.checkInTicket = async (req, res) => {
+  try {
+    const { id, secret } = req.params;
+
+    const booking = await Booking.findById(id).populate("concert").populate("user", "name email");
+
+    if (!booking || booking.qrSecret !== secret) {
+      return res.status(404).json({
+        status: "INVALID",
+        message: "Invalid ticket",
+      });
+    }
+
+    if (booking.status !== "confirmed") {
+      return res.status(400).json({
+        status: "INVALID",
+        message: "Ticket is not confirmed",
+      });
+    }
+
+    if (booking.checkedIn) {
+      return res.status(400).json({
+        status: "USED",
+        message: "Ticket already used",
+        checkedInAt: booking.checkedInAt,
+      });
+    }
+
+    booking.checkedIn = true;
+    booking.checkedInAt = new Date();
+
+    await booking.save();
+
+    res.json({
+      status: "CHECKED_IN",
+      message: "Ticket checked in successfully",
+      checkedInAt: booking.checkedInAt,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "ERROR",
+      message: error.message,
     });
   }
 };

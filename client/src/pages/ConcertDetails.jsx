@@ -155,7 +155,7 @@ function ConcertDetails() {
         setSeats([]);
       }
     });
-fetch(`https://concert-booking-api.onrender.com/api/concerts/${id}`)
+fetch(`${import.meta.env.VITE_API_URL}/api/concerts/${id}`)
     .then(res => res.json())
     .then(data => setConcert(data));
 }, [id]);
@@ -219,7 +219,7 @@ fetch(`https://concert-booking-api.onrender.com/api/concerts/${id}`)
 
     try {
 
-      const res = await fetch("https://concert-booking-api.onrender.com/api/bookings", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
