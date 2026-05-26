@@ -116,7 +116,7 @@ function MyBookings() {
   const handlePayment = async (booking) => {
     try {
       const res = await fetch(
-        "http://localhost:5000/api/payment/checkout",
+        `${import.meta.env.VITE_API_URL}/api/payment/checkout`,
         {
           method: "POST",
           headers: {
