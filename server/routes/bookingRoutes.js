@@ -8,6 +8,7 @@ router.post("/", protect, bookingController.createBooking);
 router.get("/myBookings", protect, bookingController.getMyBookings);
 router.delete("/:id", protect, bookingController.cancelBooking);
 router.post("/confirm/:id", protect, bookingController.confirmBooking);
+router.get("/verify/:id/:secret", bookingController.verifyTicket);
 router.get("/:id", protect, bookingController.getBookingById);
 
 module.exports = router;

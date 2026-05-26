@@ -7,7 +7,7 @@ import Register from "./pages/Register";
 import MyBookings from "./pages/MyBookings";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import Ticket from "./pages/Ticket";
-
+import VerifyTicket from "./pages/VerifyTicket";
 
 function App() {
   return (
@@ -22,6 +22,7 @@ function App() {
 <Route path="/my-bookings" element={<MyBookings/>}/>
 <Route path="/payment-success/:id" element={<PaymentSuccess/>}/>
 <Route path="/ticket/:id" element={<Ticket/>}/>
+<Route path="/verify-ticket/:id/:secret" element={<VerifyTicket />} />
       </Routes>
     </>
   );

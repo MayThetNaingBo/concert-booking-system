@@ -386,12 +386,11 @@ function Ticket() {
             </div>
 
             <QRCodeSVG
-              value={`${window.location.origin}/ticket/${ticket._id}`}
-              size={64}
-              bgColor="#ffffff"
-              fgColor="#000000"
-            />
-
+  value={`${window.location.origin}/verify-ticket/${ticket._id}/${ticket.qrSecret}`}
+  size={64}
+  bgColor="#ffffff"
+  fgColor="#000000"
+/>
           </div>
 
         </div>

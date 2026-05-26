@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Booking = require("../models/Booking");
 const Concert = require("../models/Concert");
+const crypto = require("crypto");
 const { calculateDynamicPrice } = require("../services/pricingService")
 
 
@@ -217,8 +218,12 @@ exports.confirmBooking = async (req, res) => {
     }
 
     booking.status = "confirmed";
-    await booking.save();
 
+if (!booking.qrSecret) {
+  booking.qrSecret = crypto.randomBytes(24).toString("hex");
+}
+
+await booking.save();
     res.json({
       message: "Payment successful — booking confirmed",
       booking
@@ -254,4 +259,45 @@ exports.getBookingById = async (req, res) => {
 
   }
 
+};
+exports.verifyTicket = async (req, res) => {
+  try {
+    const { id, secret } = req.params;
+
+    const booking = await Booking.findById(id)
+      .populate("concert");
+
+    if (!booking || booking.qrSecret !== secret) {
+      return res.status(404).json({
+        valid: false,
+        message: "Invalid ticket"
+      });
+    }
+
+    if (booking.status !== "confirmed") {
+      return res.status(400).json({
+        valid: false,
+        message: "Ticket is not confirmed"
+      });
+    }
+
+    res.json({
+      valid: true,
+      checkedIn: booking.checkedIn,
+      checkedInAt: booking.checkedInAt,
+      bookingId: booking._id,
+      concertName: booking.concert?.title,
+      artist: booking.concert?.artist,
+      venue: booking.concert?.venue,
+      date: booking.concert?.date,
+      startTime: booking.concert?.startTime,
+      seats: booking.seats
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      valid: false,
+      message: error.message
+    });
+  }
 };
