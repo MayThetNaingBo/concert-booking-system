@@ -5,16 +5,22 @@ function PaymentSuccess() {
   const { id } = useParams();
 
   return (
-    <div style={{ padding: "120px 30px", textAlign: "center", color: "white" }}>
+    <div
+      style={{
+        minHeight: "80vh",
+        padding: "120px 30px",
+        textAlign: "center",
+        color: "black",
+        background: "white",
+      }}
+    >
       <h1>Payment Successful</h1>
 
-      <p>
-        Your payment was successful. Your ticket is being confirmed by Stripe.
-      </p>
+      <p>Your payment was successful.</p>
 
       <p>
-        If your ticket does not appear immediately, wait a few seconds and check
-        My Bookings again.
+        Your ticket is being confirmed by Stripe. If it does not appear
+        immediately, wait a few seconds and check My Bookings again.
       </p>
 
       <button onClick={() => navigate(`/ticket/${id}`)}>
