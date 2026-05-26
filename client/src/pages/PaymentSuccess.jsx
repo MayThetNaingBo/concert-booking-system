@@ -17,8 +17,9 @@ function PaymentSuccess() {
 
         <div style={styles.infoBox}>
           <p style={styles.infoText}>
-            Your ticket is being confirmed by Stripe. If it does not appear
-            immediately, please wait a few seconds and check your bookings again.
+            Your payment was successful. We are preparing your ticket now.
+  This usually takes a few seconds. Click “View My Ticket” to open it,
+  or check it later in My Bookings.
           </p>
         </div>
 
