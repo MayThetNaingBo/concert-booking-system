@@ -22,11 +22,24 @@ const bookingSchema = new mongoose.Schema({
   },
   status: {
   type: String,
-  enum: ["pending", "confirmed", "cancelled"],
-  default: "pending"
+  enum: ["pending", "confirmed", "cancelled", "refunded"],
+  default: "pending",
 },
 
 expiresAt: Date,
+
+qrSecret: {
+  type: String,
+  unique: true,
+  sparse: true,
+},
+
+checkedIn: {
+  type: Boolean,
+  default: false,
+},
+
+checkedInAt: Date,
 
   qrSecret: {
   type: String,
