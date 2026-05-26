@@ -11,7 +11,7 @@ function Navbar() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    navigate("/signin");
+    navigate("/login");
   };
 
   const avatarLetter = user?.name?.charAt(0).toUpperCase() || "U";

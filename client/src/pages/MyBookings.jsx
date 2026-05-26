@@ -143,7 +143,7 @@ function MyBookings() {
 
   const handleLogoutAndLogin = () => {
     localStorage.clear();
-    navigate("/signin");
+    navigate("/login");
   };
 
   const getStatusColor = (status) => {
