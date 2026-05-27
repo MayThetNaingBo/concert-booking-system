@@ -82,8 +82,7 @@ function AccountSettings() {
 
       if (!res.ok) {
         alert(data.message || "Failed to change password.");
-       navigate("/Home");
-          return;
+        return;
       }
 
       setPasswords({
@@ -93,6 +92,8 @@ function AccountSettings() {
       });
 
       alert("Password changed successfully.");
+
+      navigate("/");
     } catch (error) {
       alert("Something went wrong while changing password.");
     }

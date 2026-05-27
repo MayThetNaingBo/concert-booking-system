@@ -129,12 +129,7 @@ exports.changePassword = async (req, res) => {
       });
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({
-        message: "New password must be at least 6 characters.",
-      });
-    }
-
+    
     const userId = req.user.id || req.user._id;
 
     const user = await User.findById(userId);
