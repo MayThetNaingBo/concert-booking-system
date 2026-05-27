@@ -257,7 +257,7 @@ function Hero() {
           </div>
 
           <h1 className="hero-title">
-            Live The
+            Feel The
             <span className="hero-title-highlight">Music</span>
           </h1>
 
