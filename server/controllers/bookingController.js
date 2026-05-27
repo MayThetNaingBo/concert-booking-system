@@ -2,18 +2,31 @@ const mongoose = require("mongoose");
 const Booking = require("../models/Booking");
 const Concert = require("../models/Concert");
 const crypto = require("crypto");
-const { calculateDynamicPrice } = require("../services/pricingService")
+const { calculateDynamicPrice } = require("../services/pricingService");
 
+const MAX_TICKETS_PER_CONCERT = 4;
 
 // CREATE BOOKING (Seat Hold)
 exports.createBooking = async (req, res) => {
-
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-
     const { concertId, seats } = req.body;
+
+    if (!concertId) {
+      throw new Error("Concert ID is required");
+    }
+
+    if (!Array.isArray(seats) || seats.length === 0) {
+      throw new Error("Please select at least one seat");
+    }
+
+    if (seats.length > MAX_TICKETS_PER_CONCERT) {
+      throw new Error(
+        `You can only select up to ${MAX_TICKETS_PER_CONCERT} tickets for each concert.`
+      );
+    }
 
     const concert = await Concert.findById(concertId).session(session);
 
@@ -21,29 +34,41 @@ exports.createBooking = async (req, res) => {
       throw new Error("Concert not found");
     }
 
+    // Count existing active bookings for this user and this concert
+    // pending = reserved seats not paid yet
+    // confirmed = paid tickets
+    // cancelled/refunded should not count
+    const existingBookings = await Booking.find({
+      user: req.user.id,
+      concert: concertId,
+      status: { $in: ["pending", "confirmed"] },
+    }).session(session);
+
+    const alreadyBookedTickets = existingBookings.reduce((total, booking) => {
+      return total + booking.seats.length;
+    }, 0);
+
+    if (alreadyBookedTickets + seats.length > MAX_TICKETS_PER_CONCERT) {
+      throw new Error(
+        `You can only book up to ${MAX_TICKETS_PER_CONCERT} tickets for this concert. You already have ${alreadyBookedTickets} ticket(s).`
+      );
+    }
+
     let totalPrice = 0;
 
-    seats.forEach(seatNumber => {
-
-      const seat = concert.seats.find(
-        s => s.seatNumber === seatNumber
-      );
+    seats.forEach((seatNumber) => {
+      const seat = concert.seats.find((s) => s.seatNumber === seatNumber);
 
       if (!seat || seat.isBooked) {
         throw new Error(`Seat ${seatNumber} unavailable`);
       }
 
-      // AI Dynamic Pricing
-      const dynamicPrice = calculateDynamicPrice(
-        seat.price,
-        concert
-      );
+      const dynamicPrice = calculateDynamicPrice(seat.price, concert);
 
       totalPrice += dynamicPrice;
 
-      // lock seat
+      // Lock seat
       seat.isBooked = true;
-
     });
 
     await concert.save({ session });
@@ -57,7 +82,7 @@ exports.createBooking = async (req, res) => {
       seats,
       totalPrice,
       status: "pending",
-      expiresAt
+      expiresAt,
     });
 
     await booking.save({ session });
@@ -67,11 +92,9 @@ exports.createBooking = async (req, res) => {
 
     res.status(201).json({
       message: "Seats reserved for 1 minute",
-      booking
+      booking,
     });
-
   } catch (error) {
-
     if (session.inTransaction()) {
       await session.abortTransaction();
     }
@@ -79,60 +102,66 @@ exports.createBooking = async (req, res) => {
     session.endSession();
 
     res.status(400).json({
-      message: error.message
+      message: error.message,
     });
-
   }
-
 };
+
 // GET USER BOOKINGS
 exports.getMyBookings = async (req, res) => {
-
   try {
-
     const bookings = await Booking.find({ user: req.user.id })
       .populate("concert")
       .populate("user", "name email")
       .sort({ createdAt: -1 });
 
     res.json(bookings);
-
   } catch (error) {
-
     res.status(500).json({
-      message: error.message
+      message: error.message,
     });
-
   }
-
 };
-
-
 
 // CANCEL BOOKING
 exports.cancelBooking = async (req, res) => {
-
   try {
-
     const booking = await Booking.findById(req.params.id);
 
     if (!booking) {
       return res.status(404).json({
-        message: "Booking not found"
+        message: "Booking not found",
+      });
+    }
+
+    // Security: user can only cancel their own booking
+    if (booking.user.toString() !== req.user.id.toString()) {
+      return res.status(403).json({
+        message: "You are not allowed to cancel this booking",
+      });
+    }
+
+    if (booking.status === "cancelled") {
+      return res.status(400).json({
+        message: "Booking is already cancelled",
       });
     }
 
     const concert = await Concert.findById(booking.concert);
 
-    // release seats
-    booking.seats.forEach(seatNumber => {
+    if (!concert) {
+      return res.status(404).json({
+        message: "Concert not found",
+      });
+    }
 
-      const seat = concert.seats.find(s => s.seatNumber === seatNumber);
+    // Release seats
+    booking.seats.forEach((seatNumber) => {
+      const seat = concert.seats.find((s) => s.seatNumber === seatNumber);
 
       if (seat) {
         seat.isBooked = false;
       }
-
     });
 
     await concert.save();
@@ -141,20 +170,14 @@ exports.cancelBooking = async (req, res) => {
     await booking.save();
 
     res.json({
-      message: "Booking cancelled successfully"
+      message: "Booking cancelled successfully",
     });
-
   } catch (error) {
-
     res.status(500).json({
-      message: error.message
+      message: error.message,
     });
-
   }
-
 };
-
-
 
 // CONFIRM BOOKING (After Payment)
 exports.confirmBooking = async (req, res) => {
@@ -163,7 +186,7 @@ exports.confirmBooking = async (req, res) => {
 
     if (!booking) {
       return res.status(404).json({
-        message: "Booking not found"
+        message: "Booking not found",
       });
     }
 
@@ -171,15 +194,15 @@ exports.confirmBooking = async (req, res) => {
 
     if (!concert) {
       return res.status(404).json({
-        message: "Concert not found"
+        message: "Concert not found",
       });
     }
 
     // If already cancelled
     if (booking.status === "cancelled") {
-      // make sure seats are released
-      booking.seats.forEach(seatNumber => {
-        const seat = concert.seats.find(s => s.seatNumber === seatNumber);
+      booking.seats.forEach((seatNumber) => {
+        const seat = concert.seats.find((s) => s.seatNumber === seatNumber);
+
         if (seat) {
           seat.isBooked = false;
         }
@@ -188,7 +211,7 @@ exports.confirmBooking = async (req, res) => {
       await concert.save();
 
       return res.status(400).json({
-        message: "Booking already expired or cancelled"
+        message: "Booking already expired or cancelled",
       });
     }
 
@@ -196,8 +219,9 @@ exports.confirmBooking = async (req, res) => {
     if (booking.expiresAt && new Date() > booking.expiresAt) {
       booking.status = "cancelled";
 
-      booking.seats.forEach(seatNumber => {
-        const seat = concert.seats.find(s => s.seatNumber === seatNumber);
+      booking.seats.forEach((seatNumber) => {
+        const seat = concert.seats.find((s) => s.seatNumber === seatNumber);
+
         if (seat) {
           seat.isBooked = false;
         }
@@ -207,65 +231,73 @@ exports.confirmBooking = async (req, res) => {
       await booking.save();
 
       return res.status(400).json({
-        message: "Booking expired. Payment cannot be confirmed."
+        message: "Booking expired. Payment cannot be confirmed.",
       });
     }
 
     // Only confirm if still pending
     if (booking.status !== "pending") {
       return res.status(400).json({
-        message: "Booking cannot be confirmed"
+        message: "Booking cannot be confirmed",
       });
     }
 
     booking.status = "confirmed";
 
-if (!booking.qrSecret) {
-  booking.qrSecret = crypto.randomBytes(24).toString("hex");
-}
+    if (!booking.qrSecret) {
+      booking.qrSecret = crypto.randomBytes(24).toString("hex");
+    }
 
-await booking.save();
+    await booking.save();
+
     res.json({
       message: "Payment successful — booking confirmed",
-      booking
+      booking,
     });
-
   } catch (error) {
     res.status(500).json({
-      message: error.message
+      message: error.message,
     });
   }
 };
+
 exports.getBookingById = async (req, res) => {
-
   try {
-
     const booking = await Booking.findById(req.params.id)
       .populate("concert")
-      .populate("user");
+      .populate("user", "name email role");
 
     if (!booking) {
       return res.status(404).json({
-        message: "Booking not found"
+        message: "Booking not found",
+      });
+    }
+
+    // Security: user can only view their own ticket unless admin
+    const isOwner = booking.user._id.toString() === req.user.id.toString();
+    const isAdmin = req.user.role === "admin";
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        message: "You are not allowed to view this ticket",
       });
     }
 
     res.json(booking);
-
   } catch (error) {
-
     res.status(500).json({
-      message: error.message
+      message: error.message,
     });
-
   }
-
 };
+
 exports.verifyTicket = async (req, res) => {
   try {
     const { id, secret } = req.params;
 
-    const booking = await Booking.findById(id).populate("concert") .populate("user", "name email");
+    const booking = await Booking.findById(id)
+      .populate("concert")
+      .populate("user", "name email");
 
     if (!booking || booking.qrSecret !== secret) {
       return res.status(404).json({
@@ -288,7 +320,7 @@ exports.verifyTicket = async (req, res) => {
         checkedInAt: booking.checkedInAt,
         bookingId: booking._id,
         buyerName: booking.user?.name,
-buyerEmail: booking.user?.email,
+        buyerEmail: booking.user?.email,
         concertName: booking.concert?.title,
         artist: booking.concert?.artist,
         venue: booking.concert?.venue,
@@ -303,7 +335,7 @@ buyerEmail: booking.user?.email,
       checkedIn: false,
       bookingId: booking._id,
       buyerName: booking.user?.name,
-buyerEmail: booking.user?.email,
+      buyerEmail: booking.user?.email,
       concertName: booking.concert?.title,
       artist: booking.concert?.artist,
       venue: booking.concert?.venue,
@@ -323,7 +355,9 @@ exports.checkInTicket = async (req, res) => {
   try {
     const { id, secret } = req.params;
 
-    const booking = await Booking.findById(id).populate("concert").populate("user", "name email");
+    const booking = await Booking.findById(id)
+      .populate("concert")
+      .populate("user", "name email");
 
     if (!booking || booking.qrSecret !== secret) {
       return res.status(404).json({

@@ -22,6 +22,8 @@ const TILE_W = 26;
 const TILE_H = 20;
 const SEAT_PIX_GAP = 4;
 
+const MAX_TICKETS_PER_CONCERT = 4;
+
 /* Removed price from zones */
 const ZONES = [
   {
@@ -32,7 +34,7 @@ const ZONES = [
       { row: "B", radius: 158 },
       { row: "C", radius: 186 },
     ],
-    color: { base: "#21ecec", border: "#0040c9" }
+    color: { base: "#21ecec", border: "#0040c9" },
   },
   {
     id: "CAT1",
@@ -43,7 +45,7 @@ const ZONES = [
       { row: "F", radius: 278 },
       { row: "G", radius: 306 },
     ],
-    color: { base: "#FF5252", border: "#D32F2F" }
+    color: { base: "#FF5252", border: "#D32F2F" },
   },
   {
     id: "CAT2",
@@ -54,7 +56,7 @@ const ZONES = [
       { row: "J", radius: 398 },
       { row: "K", radius: 426 },
     ],
-    color: { base: "#00BFA5", border: "#00897B" }
+    color: { base: "#00BFA5", border: "#00897B" },
   },
   {
     id: "CAT3",
@@ -63,17 +65,19 @@ const ZONES = [
       { row: "L", radius: 462 },
       { row: "M", radius: 490 },
     ],
-    color: { base: "#7C4DFF", border: "#5E35B1" }
+    color: { base: "#7C4DFF", border: "#5E35B1" },
   },
 ];
 
 const ZONE_MAP = {};
-ZONES.forEach(z => { ZONE_MAP[z.id] = z; });
+ZONES.forEach((z) => {
+  ZONE_MAP[z.id] = z;
+});
 
 function buildPositionMap() {
   const map = {};
 
-  ZONES.forEach(zone => {
+  ZONES.forEach((zone) => {
     zone.rows.forEach(({ row, radius }) => {
       const degPerPx = 360 / (2 * Math.PI * radius);
       const tileAngle = TILE_W * degPerPx;
@@ -101,13 +105,13 @@ function buildPositionMap() {
       }
 
       let seatNum = 1;
-      [...leftSeats, ...rightSeats].forEach(deg => {
+      [...leftSeats, ...rightSeats].forEach((deg) => {
         const rad = (deg * Math.PI) / 180;
         map[`${row}${seatNum}`] = {
           x: ARC_CX + Math.cos(rad) * radius,
           y: ARC_CY + Math.sin(rad) * radius,
           deg,
-          zone: zone.id
+          zone: zone.id,
         };
         seatNum++;
       });
@@ -118,11 +122,10 @@ function buildPositionMap() {
 }
 
 const POSITION_MAP = buildPositionMap();
-const deepest = Math.max(...Object.values(POSITION_MAP).map(p => p.y));
+const deepest = Math.max(...Object.values(POSITION_MAP).map((p) => p.y));
 const SVG_H = deepest + TILE_H + 80;
 
 function ConcertDetails() {
-
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const { id } = useParams();
@@ -133,20 +136,77 @@ function ConcertDetails() {
   const [hovered, setHovered] = useState(null);
   const [tooltip, setTooltip] = useState(null);
 
+  const [alreadyBookedCount, setAlreadyBookedCount] = useState(0);
+  const [limitMessage, setLimitMessage] = useState("");
+
+  const remainingTicketLimit = Math.max(
+    0,
+    MAX_TICKETS_PER_CONCERT - alreadyBookedCount
+  );
+
   const totalSeats = seats.length;
-  const bookedSeats = seats.filter(s => s.isBooked).length;
+  const bookedSeats = seats.filter((s) => s.isBooked).length;
   const availableSeats = totalSeats - bookedSeats;
 
-  /* ⭐ Dynamic zone pricing from DB */
+  /* Dynamic zone pricing from DB */
   const getZonePrice = (category) => {
-  const seat = seats.find(
-    s => s.category?.toUpperCase().trim() === category.toUpperCase()
-  );
-  return seat ? seat.price : "";
-};
+    const seat = seats.find(
+      (s) => s.category?.toUpperCase().trim() === category.toUpperCase()
+    );
+    return seat ? seat.price : "";
+  };
+
+  const fetchUserBookingsForConcert = async () => {
+    try {
+      const currentToken = localStorage.getItem("token");
+
+      if (!currentToken) {
+        setAlreadyBookedCount(0);
+        return;
+      }
+
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/bookings/myBookings`,
+        {
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok || !Array.isArray(data)) {
+        setAlreadyBookedCount(0);
+        return;
+      }
+
+      const activeBookingsForThisConcert = data.filter((booking) => {
+        const bookingConcertId = booking.concert?._id || booking.concert;
+
+        const isSameConcert = bookingConcertId === id;
+        const isConfirmed = booking.status === "confirmed";
+
+        const isActivePending =
+          booking.status === "pending" &&
+          (!booking.expiresAt || new Date(booking.expiresAt) > new Date());
+
+        return isSameConcert && (isConfirmed || isActivePending);
+      });
+
+      const totalBooked = activeBookingsForThisConcert.reduce(
+        (total, booking) => total + (booking.seats?.length || 0),
+        0
+      );
+
+      setAlreadyBookedCount(totalBooked);
+    } catch (error) {
+      console.error("Failed to fetch user bookings:", error);
+    }
+  };
 
   useEffect(() => {
-    getSeats(id).then(data => {
+    getSeats(id).then((data) => {
       if (Array.isArray(data)) {
         setSeats(data);
       } else if (data.seats) {
@@ -155,29 +215,27 @@ function ConcertDetails() {
         setSeats([]);
       }
     });
-fetch(`${import.meta.env.VITE_API_URL}/api/concerts/${id}`)
-    .then(res => res.json())
-    .then(data => setConcert(data));
-}, [id]);
+
+    fetch(`${import.meta.env.VITE_API_URL}/api/concerts/${id}`)
+      .then((res) => res.json())
+      .then((data) => setConcert(data));
+
+    fetchUserBookingsForConcert();
+  }, [id]);
 
   useEffect(() => {
-
     socket.on("seatLocked", (data) => {
-      setSeats(prev =>
-        prev.map(s =>
-          s.seatNumber === data.seatNumber
-            ? { ...s, isBooked: true }
-            : s
+      setSeats((prev) =>
+        prev.map((s) =>
+          s.seatNumber === data.seatNumber ? { ...s, isBooked: true } : s
         )
       );
     });
 
     socket.on("seatUnlocked", (data) => {
-      setSeats(prev =>
-        prev.map(s =>
-          s.seatNumber === data.seatNumber
-            ? { ...s, isBooked: false }
-            : s
+      setSeats((prev) =>
+        prev.map((s) =>
+          s.seatNumber === data.seatNumber ? { ...s, isBooked: false } : s
         )
       );
     });
@@ -186,50 +244,87 @@ fetch(`${import.meta.env.VITE_API_URL}/api/concerts/${id}`)
       socket.off("seatLocked");
       socket.off("seatUnlocked");
     };
-
   }, []);
 
   const seatMap = {};
-  seats.forEach(s => { seatMap[s.seatNumber] = s; });
+  seats.forEach((s) => {
+    seatMap[s.seatNumber] = s;
+  });
 
   const handleSeatClick = (seat) => {
     if (seat.isBooked) return;
 
-    setSelectedSeats(prev =>
-      prev.includes(seat.seatNumber)
-        ? prev.filter(s => s !== seat.seatNumber)
-        : [...prev, seat.seatNumber]
-    );
+    setLimitMessage("");
+
+    if (!token) {
+      setLimitMessage("Please login first before selecting seats.");
+      return;
+    }
+
+    if (remainingTicketLimit <= 0) {
+      setLimitMessage(
+        `You have already reached the limit of ${MAX_TICKETS_PER_CONCERT} tickets for this concert.`
+      );
+      return;
+    }
+
+    const isAlreadySelected = selectedSeats.includes(seat.seatNumber);
+
+    if (isAlreadySelected) {
+      setSelectedSeats((prev) =>
+        prev.filter((seatNumber) => seatNumber !== seat.seatNumber)
+      );
+      return;
+    }
+
+    if (selectedSeats.length >= remainingTicketLimit) {
+      setLimitMessage(
+        `You can only select ${remainingTicketLimit} more ticket(s) for this concert.`
+      );
+      return;
+    }
+
+    setSelectedSeats((prev) => [...prev, seat.seatNumber]);
   };
 
   const totalPrice = selectedSeats.reduce((acc, seatNumber) => {
-    const foundSeat = seats.find(s => s.seatNumber === seatNumber);
+    const foundSeat = seats.find((s) => s.seatNumber === seatNumber);
     if (!foundSeat) return acc;
     return acc + foundSeat.price;
   }, 0);
 
   const handleBooking = async () => {
+    const currentToken = localStorage.getItem("token");
 
-    const token = localStorage.getItem("token");
-
-    if (!token) {
+    if (!currentToken) {
       navigate("/login");
       return;
     }
 
-    try {
+    if (selectedSeats.length === 0) {
+      alert("Please select at least one seat.");
+      return;
+    }
 
+    if (alreadyBookedCount + selectedSeats.length > MAX_TICKETS_PER_CONCERT) {
+      alert(
+        `You can only buy up to ${MAX_TICKETS_PER_CONCERT} tickets for this concert.`
+      );
+      return;
+    }
+
+    try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${currentToken}`,
         },
         body: JSON.stringify({
           concertId: id,
           seats: selectedSeats,
-          totalPrice
-        })
+          totalPrice,
+        }),
       });
 
       const data = await res.json();
@@ -239,21 +334,24 @@ fetch(`${import.meta.env.VITE_API_URL}/api/concerts/${id}`)
         return;
       }
 
-      selectedSeats.forEach(seatNumber => {
+      selectedSeats.forEach((seatNumber) => {
         socket.emit("lockSeat", {
           concertId: id,
-          seatNumber
+          seatNumber,
         });
       });
 
       alert("Seats reserved for 1 minute 🎟");
-      setSelectedSeats([]);
 
+      setAlreadyBookedCount((prev) => prev + selectedSeats.length);
+      setSelectedSeats([]);
+      setLimitMessage("");
+
+      fetchUserBookingsForConcert();
     } catch (err) {
       alert("Booking error");
     }
   };
-
 
   return (
     <>
@@ -268,7 +366,6 @@ fetch(`${import.meta.env.VITE_API_URL}/api/concerts/${id}`)
           background: radial-gradient(ellipse at 50% 10%, #0e0e28 0%, #050508 65%);
         }
 
-        /* Top section: legend-width spacer + centered content column */
         .cd-top {
           display: flex;
           align-items: flex-start;
@@ -313,7 +410,6 @@ fetch(`${import.meta.env.VITE_API_URL}/api/concerts/${id}`)
           margin-top: 1.5rem;
         }
 
-        /* ── Centered info banner above the map ── */
         .map-info-bar {
           display: flex;
           flex-direction: column;
@@ -382,7 +478,34 @@ fetch(`${import.meta.env.VITE_API_URL}/api/concerts/${id}`)
           font-weight: 700;
         }
 
-        /* ── Map + legend side-by-side row ── */
+        .ticket-limit-box {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 0.5rem 1rem;
+          border-radius: 10px;
+          background: rgba(250,204,21,0.09);
+          border: 1px solid rgba(250,204,21,0.25);
+          color: #facc15;
+          font-size: 0.82rem;
+          font-weight: 700;
+          text-align: center;
+        }
+
+        .ticket-limit-error {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 0.5rem 1rem;
+          border-radius: 10px;
+          background: rgba(248,113,113,0.1);
+          border: 1px solid rgba(248,113,113,0.28);
+          color: #f87171;
+          font-size: 0.82rem;
+          font-weight: 800;
+          text-align: center;
+        }
+
         .map-outer {
           display: flex;
           align-items: flex-start;
@@ -400,7 +523,6 @@ fetch(`${import.meta.env.VITE_API_URL}/api/concerts/${id}`)
           min-width: 0;
         }
 
-        /* ── Zone legend panel — left column, sticks to top ── */
         .zone-legend-wrap {
           flex-shrink: 0;
           padding-top: 4px;
@@ -461,11 +583,9 @@ fetch(`${import.meta.env.VITE_API_URL}/api/concerts/${id}`)
           margin: 0.1rem 0;
         }
 
-        /* ── Seat hover ── */
         .seat-g { cursor: pointer; }
         .seat-g:hover .sr { filter: brightness(1.5) saturate(1.2); }
 
-        /* ── Booking bar ── */
         .booking-bar {
           position: fixed;
           bottom: 0; left: 0; right: 0;
@@ -557,8 +677,6 @@ fetch(`${import.meta.env.VITE_API_URL}/api/concerts/${id}`)
       `}</style>
 
       <div className="cd-page">
-
-        {/* ── Top row: spacer (aligns with legend) + centered header content ── */}
         <div className="cd-top">
           <div className="cd-top-spacer" />
           <div className="cd-top-content">
@@ -566,6 +684,7 @@ fetch(`${import.meta.env.VITE_API_URL}/api/concerts/${id}`)
               <div className="cd-eyebrow">— Choose Your Spot —</div>
               <div className="cd-title">{concert ? concert.title : "Seat Map"}</div>
             </div>
+
             <div className="map-info-bar">
               {!token && (
                 <div className="login-warning">
@@ -573,17 +692,29 @@ fetch(`${import.meta.env.VITE_API_URL}/api/concerts/${id}`)
                   Login required to book seats
                 </div>
               )}
+
               <div className="seats-availability">
                 <span className="seats-availability-dot" />
                 <span>
-                  <strong>{availableSeats}</strong> of <strong>{totalSeats}</strong> seats available
+                  <strong>{availableSeats}</strong> of{" "}
+                  <strong>{totalSeats}</strong> seats available
                 </span>
               </div>
+
+              {token && (
+                <div className="ticket-limit-box">
+                  Ticket limit: You already have {alreadyBookedCount} active
+                  ticket(s). You can select {remainingTicketLimit} more.
+                </div>
+              )}
+
+              {limitMessage && (
+                <div className="ticket-limit-error">{limitMessage}</div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* ── Map wrapper: legend left, SVG right ── */}
         <div className="map-outer">
           <div className="zone-legend-wrap">
             <div className="zone-legend-panel">
@@ -593,27 +724,42 @@ fetch(`${import.meta.env.VITE_API_URL}/api/concerts/${id}`)
                   <div className="zone-legend-row">
                     <span
                       className="zone-legend-swatch"
-                      style={{ background: z.color.base, border: `1px solid ${z.color.border}` }}
+                      style={{
+                        background: z.color.base,
+                        border: `1px solid ${z.color.border}`,
+                      }}
                     />
                     <span>{z.label}</span>
-                    <span className="zone-legend-price" style={{ color: z.color.base }}>
+                    <span
+                      className="zone-legend-price"
+                      style={{ color: z.color.base }}
+                    >
                       SGD {getZonePrice(z.id)}
                     </span>
                   </div>
-                  {i < ZONES.length - 1 && <hr className="zone-legend-divider" />}
+                  {i < ZONES.length - 1 && (
+                    <hr className="zone-legend-divider" />
+                  )}
                 </div>
               ))}
               <hr className="zone-legend-divider" style={{ marginTop: "0.4rem" }} />
               <div className="zone-legend-row">
-                <span className="zone-legend-swatch" style={{ background: "#1a1a2e", border: "1px solid #252542" }} />
+                <span
+                  className="zone-legend-swatch"
+                  style={{ background: "#1a1a2e", border: "1px solid #252542" }}
+                />
                 <span>Sold Out</span>
               </div>
               <div className="zone-legend-row">
-                <span className="zone-legend-swatch" style={{ background: "#e8ff47", border: "1px solid #c4d800" }} />
+                <span
+                  className="zone-legend-swatch"
+                  style={{ background: "#e8ff47", border: "1px solid #c4d800" }}
+                />
                 <span>Your Selection</span>
               </div>
             </div>
           </div>
+
           <div className="seat-svg-wrap">
             <svg
               viewBox={`0 0 ${SVG_W} ${SVG_H}`}
@@ -622,107 +768,177 @@ fetch(`${import.meta.env.VITE_API_URL}/api/concerts/${id}`)
               style={{ display: "block", maxWidth: "100%", height: "auto" }}
             >
               <defs>
-                {ZONES.map(z => (
-                  <linearGradient key={z.id} id={`gz-${z.id}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={z.color.base}/>
-                    <stop offset="100%" stopColor={z.color.border}/>
+                {ZONES.map((z) => (
+                  <linearGradient
+                    key={z.id}
+                    id={`gz-${z.id}`}
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="0%" stopColor={z.color.base} />
+                    <stop offset="100%" stopColor={z.color.border} />
                   </linearGradient>
                 ))}
                 <linearGradient id="gz-selected" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f8ff90"/>
-                  <stop offset="100%" stopColor="#9eb000"/>
+                  <stop offset="0%" stopColor="#f8ff90" />
+                  <stop offset="100%" stopColor="#9eb000" />
                 </linearGradient>
                 <linearGradient id="gz-booked" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#1e1e2e"/>
-                  <stop offset="100%" stopColor="#0d0d18"/>
+                  <stop offset="0%" stopColor="#1e1e2e" />
+                  <stop offset="100%" stopColor="#0d0d18" />
                 </linearGradient>
                 <linearGradient id="g-stage" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#1e1e00"/>
-                  <stop offset="100%" stopColor="#080700"/>
+                  <stop offset="0%" stopColor="#1e1e00" />
+                  <stop offset="100%" stopColor="#080700" />
                 </linearGradient>
                 <linearGradient id="g-stage-shine" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="rgba(232,255,71,0.3)"/>
-                  <stop offset="100%" stopColor="rgba(232,255,71,0)"/>
+                  <stop offset="0%" stopColor="rgba(232,255,71,0.3)" />
+                  <stop offset="100%" stopColor="rgba(232,255,71,0)" />
                 </linearGradient>
                 <filter id="f-glow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="4" result="b"/>
-                  <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  <feGaussianBlur stdDeviation="4" result="b" />
+                  <feMerge>
+                    <feMergeNode in="b" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
                 </filter>
                 <filter id="f-stage-glow" x="-60%" y="-100%" width="220%" height="300%">
-                  <feGaussianBlur stdDeviation="20" result="b"/>
-                  <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  <feGaussianBlur stdDeviation="20" result="b" />
+                  <feMerge>
+                    <feMergeNode in="b" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
                 </filter>
                 <filter id="f-shadow">
-                  <feDropShadow dx="0" dy="1" stdDeviation="1.2" floodColor="rgba(0,0,0,0.7)"/>
+                  <feDropShadow
+                    dx="0"
+                    dy="1"
+                    stdDeviation="1.2"
+                    floodColor="rgba(0,0,0,0.7)"
+                  />
                 </filter>
               </defs>
 
-              {/* Stage */}
               <rect
-                x={STAGE_X - 16} y={STAGE_Y - 10}
-                width={STAGE_W + 32} height={STAGE_H + 20} rx={10}
-                fill="rgba(232,255,71,0.07)" filter="url(#f-stage-glow)"
+                x={STAGE_X - 16}
+                y={STAGE_Y - 10}
+                width={STAGE_W + 32}
+                height={STAGE_H + 20}
+                rx={10}
+                fill="rgba(232,255,71,0.07)"
+                filter="url(#f-stage-glow)"
               />
               <rect
-                x={STAGE_X} y={STAGE_Y}
-                width={STAGE_W} height={STAGE_H} rx={7}
-                fill="url(#g-stage)" stroke="#e8ff47" strokeWidth={1.8}
+                x={STAGE_X}
+                y={STAGE_Y}
+                width={STAGE_W}
+                height={STAGE_H}
+                rx={7}
+                fill="url(#g-stage)"
+                stroke="#e8ff47"
+                strokeWidth={1.8}
               />
               <rect
-                x={STAGE_X + 6} y={STAGE_Y + 5}
-                width={STAGE_W - 12} height={STAGE_H * 0.4} rx={4}
+                x={STAGE_X + 6}
+                y={STAGE_Y + 5}
+                width={STAGE_W - 12}
+                height={STAGE_H * 0.4}
+                rx={4}
                 fill="url(#g-stage-shine)"
               />
               <rect
-                x={STAGE_X} y={STAGE_Y}
-                width={STAGE_W} height={STAGE_H} rx={7}
-                fill="none" stroke="rgba(232,255,71,0.15)" strokeWidth={8}
+                x={STAGE_X}
+                y={STAGE_Y}
+                width={STAGE_W}
+                height={STAGE_H}
+                rx={7}
+                fill="none"
+                stroke="rgba(232,255,71,0.15)"
+                strokeWidth={8}
               />
               <text
-                x={SVG_W / 2} y={STAGE_Y + STAGE_H / 2 - 6}
-                textAnchor="middle" dominantBaseline="middle" fill="#e8ff47"
-                style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 25, letterSpacing: "0.3em" }}
-              >STAGE</text>
-              
-              {/* Arc guide rings */}
-              {ZONES.flatMap(z => z.rows.map(({ radius }) => (
-                <circle
-                  key={z.id + radius}
-                  cx={ARC_CX} cy={ARC_CY} r={radius}
-                  fill="none" stroke={z.color.base}
-                  strokeWidth={0.4} opacity={0.06} strokeDasharray="3 9"
-                />
-              )))}
+                x={SVG_W / 2}
+                y={STAGE_Y + STAGE_H / 2 - 6}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fill="#e8ff47"
+                style={{
+                  fontFamily: "'Bebas Neue',sans-serif",
+                  fontSize: 25,
+                  letterSpacing: "0.3em",
+                }}
+              >
+                STAGE
+              </text>
 
-              {/* Aisle band */}
+              {ZONES.flatMap((z) =>
+                z.rows.map(({ radius }) => (
+                  <circle
+                    key={z.id + radius}
+                    cx={ARC_CX}
+                    cy={ARC_CY}
+                    r={radius}
+                    fill="none"
+                    stroke={z.color.base}
+                    strokeWidth={0.4}
+                    opacity={0.06}
+                    strokeDasharray="3 9"
+                  />
+                ))
+              )}
+
               <line
                 x1={ARC_CX}
                 y1={ARC_CY + ZONES[0].rows[0].radius - 18}
                 x2={ARC_CX}
-                y2={ARC_CY + ZONES[ZONES.length - 1].rows[ZONES[ZONES.length - 1].rows.length - 1].radius + 18}
-                stroke="rgba(255,255,255,0.06)" strokeWidth={AISLE_W}
+                y2={
+                  ARC_CY +
+                  ZONES[ZONES.length - 1].rows[
+                    ZONES[ZONES.length - 1].rows.length - 1
+                  ].radius +
+                  18
+                }
+                stroke="rgba(255,255,255,0.06)"
+                strokeWidth={AISLE_W}
               />
               <line
                 x1={ARC_CX}
                 y1={ARC_CY + ZONES[0].rows[0].radius - 18}
                 x2={ARC_CX}
-                y2={ARC_CY + ZONES[ZONES.length - 1].rows[ZONES[ZONES.length - 1].rows.length - 1].radius + 18}
-                stroke="rgba(255,255,255,0.1)" strokeWidth={1} strokeDasharray="4 6"
+                y2={
+                  ARC_CY +
+                  ZONES[ZONES.length - 1].rows[
+                    ZONES[ZONES.length - 1].rows.length - 1
+                  ].radius +
+                  18
+                }
+                stroke="rgba(255,255,255,0.1)"
+                strokeWidth={1}
+                strokeDasharray="4 6"
               />
               <text
-  x={ARC_CX} y={ARC_CY + ZONES[1].rows[1].radius}
-  textAnchor="middle" fill="rgba(255,255,255,0.45)"   // was 0.15
-  style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 13, letterSpacing: "0.2em" }}  // was 9
->AISLE</text>
+                x={ARC_CX}
+                y={ARC_CY + ZONES[1].rows[1].radius}
+                textAnchor="middle"
+                fill="rgba(255,255,255,0.45)"
+                style={{
+                  fontFamily: "'Bebas Neue',sans-serif",
+                  fontSize: 13,
+                  letterSpacing: "0.2em",
+                }}
+              >
+                AISLE
+              </text>
 
-              {/* Zone atmosphere arcs */}
-              {ZONES.map(z => {
+              {ZONES.map((z) => {
                 const r1 = z.rows[0].radius - 14;
                 const r2 = z.rows[z.rows.length - 1].radius + 14;
                 const rMid = (r1 + r2) / 2;
                 const thickness = r2 - r1;
-                const sRad = ARC_START * Math.PI / 180;
-                const eRad = ARC_END * Math.PI / 180;
+                const sRad = (ARC_START * Math.PI) / 180;
+                const eRad = (ARC_END * Math.PI) / 180;
                 const x1 = ARC_CX + Math.cos(sRad) * rMid;
                 const y1 = ARC_CY + Math.sin(sRad) * rMid;
                 const x2 = ARC_CX + Math.cos(eRad) * rMid;
@@ -731,13 +947,14 @@ fetch(`${import.meta.env.VITE_API_URL}/api/concerts/${id}`)
                   <path
                     key={z.id + "-band"}
                     d={`M ${x1} ${y1} A ${rMid} ${rMid} 0 0 1 ${x2} ${y2}`}
-                    fill="none" stroke={z.color.base}
-                    strokeWidth={thickness} opacity={0.045}
+                    fill="none"
+                    stroke={z.color.base}
+                    strokeWidth={thickness}
+                    opacity={0.045}
                   />
                 );
               })}
 
-              {/* Seats */}
               {Object.entries(POSITION_MAP).map(([seatNumber, pos]) => {
                 const seat = seatMap[seatNumber];
                 if (!seat) return null;
@@ -747,8 +964,18 @@ fetch(`${import.meta.env.VITE_API_URL}/api/concerts/${id}`)
                 const isSel = selectedSeats.includes(seatNumber);
                 const isHov = hovered === seatNumber;
 
-                const fillId = isBooked ? "gz-booked" : isSel ? "gz-selected" : `gz-${pos.zone}`;
-                const stroke = isBooked ? "#1a1a2c" : isSel ? "#e8ff47" : zone.color.border;
+                const fillId = isBooked
+                  ? "gz-booked"
+                  : isSel
+                  ? "gz-selected"
+                  : `gz-${pos.zone}`;
+
+                const stroke = isBooked
+                  ? "#1a1a2c"
+                  : isSel
+                  ? "#e8ff47"
+                  : zone.color.border;
+
                 const textFill = isBooked ? "#252540" : isSel ? "#050500" : "#000";
                 const deg = pos.deg ?? 90;
                 const rot = `rotate(${deg - 90}, ${pos.x}, ${pos.y})`;
@@ -759,7 +986,7 @@ fetch(`${import.meta.env.VITE_API_URL}/api/concerts/${id}`)
                     key={seatNumber}
                     className={isBooked ? "" : "seat-g"}
                     style={{ cursor: isBooked ? "not-allowed" : "pointer" }}
-                    filter={(isSel || isHov) ? "url(#f-glow)" : undefined}
+                    filter={isSel || isHov ? "url(#f-glow)" : undefined}
                     opacity={isBooked ? 0.3 : 1}
                     onClick={() => handleSeatClick(seat)}
                     onMouseEnter={() => {
@@ -768,163 +995,285 @@ fetch(`${import.meta.env.VITE_API_URL}/api/concerts/${id}`)
                         setTooltip({ seat, x: pos.x, y: pos.y, zone });
                       }
                     }}
-                    onMouseLeave={() => { setHovered(null); setTooltip(null); }}
+                    onMouseLeave={() => {
+                      setHovered(null);
+                      setTooltip(null);
+                    }}
                   >
                     {isSel && (
                       <rect
-                        x={pos.x - TILE_W / 2 - 3} y={pos.y - TILE_H / 2 - 3}
-                        width={TILE_W + 6} height={TILE_H + 6} rx={5}
-                        fill="rgba(232,255,71,0.14)" stroke="rgba(232,255,71,0.5)"
-                        strokeWidth={1} transform={rot}
+                        x={pos.x - TILE_W / 2 - 3}
+                        y={pos.y - TILE_H / 2 - 3}
+                        width={TILE_W + 6}
+                        height={TILE_H + 6}
+                        rx={5}
+                        fill="rgba(232,255,71,0.14)"
+                        stroke="rgba(232,255,71,0.5)"
+                        strokeWidth={1}
+                        transform={rot}
                       />
                     )}
                     <rect
                       className="sr"
-                      x={pos.x - TILE_W / 2} y={pos.y - TILE_H / 2}
-                      width={TILE_W} height={TILE_H} rx={4}
-                      fill={`url(#${fillId})`} stroke={stroke} strokeWidth={0.9}
-                      filter="url(#f-shadow)" transform={rot}
+                      x={pos.x - TILE_W / 2}
+                      y={pos.y - TILE_H / 2}
+                      width={TILE_W}
+                      height={TILE_H}
+                      rx={4}
+                      fill={`url(#${fillId})`}
+                      stroke={stroke}
+                      strokeWidth={0.9}
+                      filter="url(#f-shadow)"
+                      transform={rot}
                     />
                     <rect
-                      x={pos.x - TILE_W / 2 + 2} y={pos.y - TILE_H / 2 + 2}
-                      width={TILE_W - 4} height={TILE_H * 0.38} rx={2}
-                      fill="rgba(255,255,255,0.2)" transform={rot}
+                      x={pos.x - TILE_W / 2 + 2}
+                      y={pos.y - TILE_H / 2 + 2}
+                      width={TILE_W - 4}
+                      height={TILE_H * 0.38}
+                      rx={2}
+                      fill="rgba(255,255,255,0.2)"
+                      transform={rot}
                       style={{ pointerEvents: "none" }}
                     />
                     {!isBooked && (
                       <text
-                        x={pos.x} y={pos.y + 0.5}
-                        textAnchor="middle" dominantBaseline="middle"
+                        x={pos.x}
+                        y={pos.y + 0.5}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
                         fill={textFill}
                         style={{
                           fontFamily: "'Outfit',sans-serif",
                           fontSize: 9,
                           fontWeight: 800,
                           pointerEvents: "none",
-                          userSelect: "none"
+                          userSelect: "none",
                         }}
-                      >{numLabel}</text>
+                      >
+                        {numLabel}
+                      </text>
                     )}
                   </g>
                 );
               })}
 
-              {/* Row labels */}
-              {ZONES.flatMap(z => z.rows.map(({ row, radius }) => {
-                const edgeDeg = ARC_START - 4;
-                const lx = ARC_CX + Math.cos(edgeDeg * Math.PI / 180) * radius;
-                const ly = ARC_CY + Math.sin(edgeDeg * Math.PI / 180) * radius;
-                return (
-                  <text
-                    key={row + "-lbl"}
-                    x={lx - 5} y={ly + 4}
-                    textAnchor="end" dominantBaseline="middle"
-                    fill={z.color.base} opacity={0.7}
-                    style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 10, letterSpacing: "0.06em" }}
-                  >{row}</text>
-                );
-              }))}
+              {ZONES.flatMap((z) =>
+                z.rows.map(({ row, radius }) => {
+                  const edgeDeg = ARC_START - 4;
+                  const lx =
+                    ARC_CX + Math.cos((edgeDeg * Math.PI) / 180) * radius;
+                  const ly =
+                    ARC_CY + Math.sin((edgeDeg * Math.PI) / 180) * radius;
+                  return (
+                    <text
+                      key={row + "-lbl"}
+                      x={lx - 5}
+                      y={ly + 4}
+                      textAnchor="end"
+                      dominantBaseline="middle"
+                      fill={z.color.base}
+                      opacity={0.7}
+                      style={{
+                        fontFamily: "'Bebas Neue',sans-serif",
+                        fontSize: 10,
+                        letterSpacing: "0.06em",
+                      }}
+                    >
+                      {row}
+                    </text>
+                  );
+                })
+              )}
 
-              {/* Zone badges */}
-              {ZONES.map(z => {
+              {ZONES.map((z) => {
                 const midRow = z.rows[Math.floor(z.rows.length / 2)];
                 const edgeDeg = ARC_END + 5;
-                const bx = ARC_CX + Math.cos(edgeDeg * Math.PI / 180) * midRow.radius;
-                const by = ARC_CY + Math.sin(edgeDeg * Math.PI / 180) * midRow.radius;
+                const bx =
+                  ARC_CX + Math.cos((edgeDeg * Math.PI) / 180) * midRow.radius;
+                const by =
+                  ARC_CY + Math.sin((edgeDeg * Math.PI) / 180) * midRow.radius;
                 const bw = z.id === "VIP" ? 48 : 62;
                 return (
                   <g key={z.id + "-badge"}>
                     <rect
-                      x={bx} y={by - 9} width={bw} height={18} rx={9}
-                      fill={z.color.border} stroke={z.color.base} strokeWidth={1} opacity={0.92}
+                      x={bx}
+                      y={by - 9}
+                      width={bw}
+                      height={18}
+                      rx={9}
+                      fill={z.color.border}
+                      stroke={z.color.base}
+                      strokeWidth={1}
+                      opacity={0.92}
                     />
                     <text
-  x={bx + bw / 2} y={by + 1}
-  textAnchor="middle" dominantBaseline="middle"
-  fill="#000000"          // was z.color.base
-  opacity={1}             // was 0.98
-  style={{
-    fontFamily: "'Outfit',sans-serif",
-    fontSize: 9.5,        // was 8
-    fontWeight: 900,      // was 800
-    letterSpacing: "0.1em",  // was 0.13em (tighter = clearer)
-    pointerEvents: "none"
-  }}
->{z.id === "VIP" ? "✦ VIP" : z.id}</text>
+                      x={bx + bw / 2}
+                      y={by + 1}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fill="#000000"
+                      opacity={1}
+                      style={{
+                        fontFamily: "'Outfit',sans-serif",
+                        fontSize: 9.5,
+                        fontWeight: 900,
+                        letterSpacing: "0.1em",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      {z.id === "VIP" ? "✦ VIP" : z.id}
+                    </text>
                   </g>
                 );
               })}
 
-              {/* Entrance */}
               <text
-  x={SVG_W / 2} y={SVG_H - 26}
-  textAnchor="middle" fill="rgba(255,255,255,0.6)"   // was 0.35
-  style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 15, letterSpacing: "0.25em" }}  // was 11
->▲</text>
-<text
-  x={SVG_W / 2} y={SVG_H - 10}
-  textAnchor="middle" fill="rgba(255,255,255,0.45)"   // was 0.15
-  style={{ fontFamily: "'Outfit',sans-serif", fontSize: 15, fontWeight: 700, letterSpacing: "0.22em" }}  // was 8
->MAIN ENTRANCE</text>
+                x={SVG_W / 2}
+                y={SVG_H - 26}
+                textAnchor="middle"
+                fill="rgba(255,255,255,0.6)"
+                style={{
+                  fontFamily: "'Bebas Neue',sans-serif",
+                  fontSize: 15,
+                  letterSpacing: "0.25em",
+                }}
+              >
+                ▲
+              </text>
+              <text
+                x={SVG_W / 2}
+                y={SVG_H - 10}
+                textAnchor="middle"
+                fill="rgba(255,255,255,0.45)"
+                style={{
+                  fontFamily: "'Outfit',sans-serif",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  letterSpacing: "0.22em",
+                }}
+              >
+                MAIN ENTRANCE
+              </text>
 
-              {/* Tooltip */}
-              {tooltip && (() => {
-                const { seat, x, y, zone } = tooltip;
-                const W = 106, H = 52;
-                const tx = Math.min(Math.max(x, W / 2 + 10), SVG_W - W / 2 - 10);
-                const ty = y - 14;
-                return (
-                  <g style={{ pointerEvents: "none" }}>
-                    <rect
-                      x={tx - W / 2} y={ty - H} width={W} height={H} rx={6}
-                      fill="#08081a" stroke={zone.color.border} strokeWidth={1.2} opacity={0.97}
-                    />
-                    <rect x={tx - W / 2} y={ty - H} width={5} height={H} fill={zone.color.base} opacity={0.85}/>
-                    <text
-                      x={tx - W / 2 + 12} y={ty - H + 15} fill="#fff"
-                      style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 14, letterSpacing: "0.07em" }}
-                    >Seat {seat.seatNumber}</text>
-                    <text
-                      x={tx - W / 2 + 12} y={ty - H + 29} fill={zone.color.base}
-                      style={{ fontFamily: "'Outfit',sans-serif", fontSize: 9, fontWeight: 600 }}
-                    >{zone.label}</text>
-                    <text
-                      x={tx - W / 2 + 12} y={ty - H + 43} fill="rgba(255,255,255,0.55)"
-                      style={{ fontFamily: "'Outfit',sans-serif", fontSize: 9 }}
-                    >SGD {seat.price}</text>
-                  </g>
-                );
-              })()}
+              {tooltip &&
+                (() => {
+                  const { seat, x, y, zone } = tooltip;
+                  const W = 106;
+                  const H = 52;
+                  const tx = Math.min(
+                    Math.max(x, W / 2 + 10),
+                    SVG_W - W / 2 - 10
+                  );
+                  const ty = y - 14;
+                  return (
+                    <g style={{ pointerEvents: "none" }}>
+                      <rect
+                        x={tx - W / 2}
+                        y={ty - H}
+                        width={W}
+                        height={H}
+                        rx={6}
+                        fill="#08081a"
+                        stroke={zone.color.border}
+                        strokeWidth={1.2}
+                        opacity={0.97}
+                      />
+                      <rect
+                        x={tx - W / 2}
+                        y={ty - H}
+                        width={5}
+                        height={H}
+                        fill={zone.color.base}
+                        opacity={0.85}
+                      />
+                      <text
+                        x={tx - W / 2 + 12}
+                        y={ty - H + 15}
+                        fill="#fff"
+                        style={{
+                          fontFamily: "'Bebas Neue',sans-serif",
+                          fontSize: 14,
+                          letterSpacing: "0.07em",
+                        }}
+                      >
+                        Seat {seat.seatNumber}
+                      </text>
+                      <text
+                        x={tx - W / 2 + 12}
+                        y={ty - H + 29}
+                        fill={zone.color.base}
+                        style={{
+                          fontFamily: "'Outfit',sans-serif",
+                          fontSize: 9,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {zone.label}
+                      </text>
+                      <text
+                        x={tx - W / 2 + 12}
+                        y={ty - H + 43}
+                        fill="rgba(255,255,255,0.55)"
+                        style={{
+                          fontFamily: "'Outfit',sans-serif",
+                          fontSize: 9,
+                        }}
+                      >
+                        SGD {seat.price}
+                      </text>
+                    </g>
+                  );
+                })()}
             </svg>
           </div>
-
         </div>
-
       </div>
 
-      {/* Booking bar */}
       <div className="booking-bar">
         <div className="booking-seats">
-          {selectedSeats.length === 0
-            ? <span>No seats selected — click the map to choose</span>
-            : selectedSeats.map(sn => <span key={sn} className="booking-tag">{sn}</span>)
-          }
+          {selectedSeats.length === 0 ? (
+            <span>
+              {alreadyBookedCount >= MAX_TICKETS_PER_CONCERT
+                ? "Ticket limit reached for this concert"
+                : "No seats selected — click the map to choose"}
+            </span>
+          ) : (
+            selectedSeats.map((sn) => (
+              <span key={sn} className="booking-tag">
+                {sn}
+              </span>
+            ))
+          )}
         </div>
+
         <div className="booking-right">
           {selectedSeats.length > 0 && (
             <div>
               <div className="booking-info-count">
-                {selectedSeats.length} seat{selectedSeats.length > 1 ? "s" : ""}
+                {selectedSeats.length} seat
+                {selectedSeats.length > 1 ? "s" : ""}
               </div>
-              <div className="booking-info-total">SGD {totalPrice.toLocaleString()}</div>
+              <div className="booking-info-total">
+                SGD {totalPrice.toLocaleString()}
+              </div>
             </div>
           )}
+
           <button
             className="booking-btn"
-            disabled={!token || selectedSeats.length === 0}
+            disabled={
+              !token ||
+              selectedSeats.length === 0 ||
+              alreadyBookedCount >= MAX_TICKETS_PER_CONCERT
+            }
             onClick={handleBooking}
           >
-            {token ? "Confirm Booking →" : "Login to Book"}
+            {!token
+              ? "Login to Book"
+              : alreadyBookedCount >= MAX_TICKETS_PER_CONCERT
+              ? "Limit Reached"
+              : "Confirm Booking →"}
           </button>
         </div>
       </div>
