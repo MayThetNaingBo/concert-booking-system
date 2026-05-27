@@ -8,11 +8,7 @@ function AccountSettings() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const [preferences, setPreferences] = useState({
-    emailNotifications: true,
-    ticketReminders: true,
-  });
-
+ 
   const [passwords, setPasswords] = useState({
     currentPassword: "",
     newPassword: "",
@@ -48,11 +44,7 @@ function AccountSettings() {
         localStorage.setItem("user", JSON.stringify(data));
         window.dispatchEvent(new Event("authChanged"));
 
-        const savedPreferences = localStorage.getItem("preferences");
-
-        if (savedPreferences) {
-          setPreferences(JSON.parse(savedPreferences));
-        }
+       
       } catch (error) {
         setMessage("Unable to load account settings.");
       } finally {
@@ -63,17 +55,7 @@ function AccountSettings() {
     fetchCurrentUser();
   }, [navigate]);
 
-  const handlePreferenceChange = (key) => {
-    const updatedPreferences = {
-      ...preferences,
-      [key]: !preferences[key],
-    };
-
-    setPreferences(updatedPreferences);
-    localStorage.setItem("preferences", JSON.stringify(updatedPreferences));
-    setMessage("Preferences updated successfully.");
-  };
-
+  
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     setMessage("");
@@ -125,14 +107,6 @@ function AccountSettings() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-
-    window.dispatchEvent(new Event("authChanged"));
-
-    navigate("/login");
-  };
 
   if (loading) {
     return (
@@ -251,70 +225,6 @@ function AccountSettings() {
               Change Password
             </button>
           </form>
-        </section>
-
-        <section style={styles.card}>
-          <div style={styles.sectionHeader}>
-            <h2 style={styles.sectionTitle}>Preferences</h2>
-            <p style={styles.sectionText}>
-              Choose how ConcertHub should notify you about your tickets.
-            </p>
-          </div>
-
-          <div style={styles.preferenceRow}>
-            <div>
-              <strong>Email notifications</strong>
-              <p style={styles.preferenceText}>
-                Receive booking updates and ticket information by email.
-              </p>
-            </div>
-
-            <button
-              onClick={() => handlePreferenceChange("emailNotifications")}
-              style={{
-                ...styles.toggle,
-                background: preferences.emailNotifications
-                  ? "#22c55e"
-                  : "#3f3f46",
-              }}
-            >
-              {preferences.emailNotifications ? "ON" : "OFF"}
-            </button>
-          </div>
-
-          <div style={styles.preferenceRow}>
-            <div>
-              <strong>Ticket reminders</strong>
-              <p style={styles.preferenceText}>
-                Get reminders before your upcoming concert.
-              </p>
-            </div>
-
-            <button
-              onClick={() => handlePreferenceChange("ticketReminders")}
-              style={{
-                ...styles.toggle,
-                background: preferences.ticketReminders
-                  ? "#22c55e"
-                  : "#3f3f46",
-              }}
-            >
-              {preferences.ticketReminders ? "ON" : "OFF"}
-            </button>
-          </div>
-        </section>
-
-        <section style={styles.logoutCard}>
-          <div>
-            <h2 style={styles.sectionTitle}>Logout</h2>
-            <p style={styles.sectionText}>
-              Sign out from this browser session.
-            </p>
-          </div>
-
-          <button onClick={handleLogout} style={styles.logoutButton}>
-            Logout
-          </button>
         </section>
       </div>
     </div>
@@ -491,53 +401,6 @@ const styles = {
     fontWeight: "900",
     cursor: "pointer",
   },
-
-  preferenceRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: "18px",
-    alignItems: "center",
-    padding: "16px 0",
-    borderTop: "1px solid rgba(255,255,255,0.08)",
-  },
-
-  preferenceText: {
-    color: "rgba(255,255,255,0.58)",
-    margin: "6px 0 0",
-    lineHeight: "1.5",
-  },
-
-  toggle: {
-    border: "none",
-    minWidth: "70px",
-    padding: "9px 12px",
-    borderRadius: "999px",
-    color: "white",
-    fontWeight: "900",
-    cursor: "pointer",
-  },
-
-  logoutCard: {
-    background: "rgba(239,68,68,0.08)",
-    border: "1px solid rgba(239,68,68,0.25)",
-    borderRadius: "18px",
-    padding: "24px",
-    display: "flex",
-    justifyContent: "space-between",
-    gap: "18px",
-    alignItems: "center",
-    flexWrap: "wrap",
-  },
-
-  logoutButton: {
-    background: "#ef4444",
-    color: "white",
-    border: "none",
-    borderRadius: "10px",
-    padding: "12px 18px",
-    fontWeight: "900",
-    cursor: "pointer",
-  },
-};
+},
 
 export default AccountSettings;
