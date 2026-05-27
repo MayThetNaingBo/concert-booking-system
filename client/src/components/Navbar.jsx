@@ -202,31 +202,35 @@ function Navbar() {
         }
 
         .user-name {
-          color: white;
-          font-weight: 800;
-          font-size: 14px;
-          margin-bottom: 4px;
-        }
+  color: white;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+}
 
-        .user-email {
-          color: rgba(255,255,255,0.5);
-          font-size: 12px;
-          word-break: break-all;
-        }
+.user-email {
+  color: rgba(255,255,255,0.5);
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.78rem;
+  margin-top: 4px;
+  word-break: break-all;
+}
 
-        .role-badge {
-          display: inline-block;
-          margin-top: 8px;
-          background: rgba(250,204,21,0.12);
-          border: 1px solid rgba(250,204,21,0.3);
-          color: #facc15;
-          border-radius: 999px;
-          padding: 4px 8px;
-          font-size: 10px;
-          font-weight: 900;
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-        }
+.role-badge {
+  display: inline-block;
+  margin-top: 10px;
+  background: rgba(232,255,71,0.08);
+  border: 1px solid rgba(232,255,71,0.45);
+  color: #e8ff47;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
 
         .dropdown-divider {
           height: 1px;
@@ -235,38 +239,70 @@ function Navbar() {
         }
 
         .dropdown-item,
-        .logout-item {
-          width: 100%;
-          text-align: left;
-          background: transparent;
-          border: none;
-          padding: 11px 10px;
-          border-radius: 8px;
-          font-weight: 700;
-          cursor: pointer;
-          font-family: 'Outfit', sans-serif;
-          transition: background 0.2s, color 0.2s;
-        }
+.logout-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 11px 10px;
+  border-radius: 0;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  position: relative;
+  transition: color 0.2s;
+}
 
-        .dropdown-item {
-          color: rgba(255,255,255,0.78);
-        }
+.dropdown-item {
+  color: rgba(255,255,255,0.6);
+}
 
-        .dropdown-item:hover {
-          background: rgba(255,255,255,0.06);
-          color: #fff;
-        }
+.dropdown-item:hover {
+  color: #fff;
+  background: transparent;
+}
 
-        .logout-item {
-          color: #f87171;
-          font-weight: 800;
-        }
+.dropdown-item::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  left: 10px;
+  width: 0;
+  height: 1px;
+  background: #e8ff47;
+  transition: width 0.3s;
+}
 
-        .logout-item:hover {
-          background: rgba(248,113,113,0.08);
-          color: #ff9b9b;
-        }
+.dropdown-item:hover::after {
+  width: calc(100% - 20px);
+}
 
+.logout-item {
+  color: #f87171;
+}
+
+.logout-item:hover {
+  color: #ff9b9b;
+  background: transparent;
+}
+
+.logout-item::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  left: 10px;
+  width: 0;
+  height: 1px;
+  background: #f87171;
+  transition: width 0.3s;
+}
+
+.logout-item:hover::after {
+  width: calc(100% - 20px);
+}
         @media (max-width: 640px) {
           .navbar {
             padding: 0 18px;
