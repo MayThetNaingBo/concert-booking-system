@@ -51,6 +51,11 @@ const styles = `
     align-items: center;
     gap: 8px;
   }
+  .header-left img {
+          width: 42px;
+          height: 42px;
+          object-fit: cover;
+        }
 
   .header-title {
     font-family: 'Bebas Neue', cursive;
@@ -425,7 +430,8 @@ const qrLink = `${window.location.origin}/staff/verify-ticket/${ticket._id}/${ti
 
           <div className="ticket-header">
             <div className="header-left">
-              <span>🎟</span>
+              
+          <img src="/logo.png" alt="ConcertHub Logo" />
               <span className="header-title">Concert Ticket</span>
             </div>
 
