@@ -14,7 +14,7 @@ function Profile() {
         const token = localStorage.getItem("token");
 
         if (!token) {
-          navigate("/signin");
+          navigate("/login");
           return;
         }
 
@@ -33,6 +33,8 @@ function Profile() {
 
         setUser(data);
         localStorage.setItem("user", JSON.stringify(data));
+
+        window.dispatchEvent(new Event("authChanged"));
       } catch (error) {
         setError("Something went wrong while loading your profile.");
       } finally {
@@ -42,6 +44,15 @@ function Profile() {
 
     fetchProfile();
   }, [navigate]);
+
+  const handleSignInAgain = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    window.dispatchEvent(new Event("authChanged"));
+
+    navigate("/login");
+  };
 
   if (loading) {
     return (
@@ -58,15 +69,12 @@ function Profile() {
       <div style={styles.page}>
         <div style={styles.card}>
           <h2>Unable to load profile</h2>
-          <p style={{ color: "rgba(255,255,255,0.65)" }}>{error}</p>
 
-          <button
-            onClick={() => {
-              localStorage.clear();
-              navigate("/signin");
-            }}
-            style={styles.button}
-          >
+          <p style={{ color: "rgba(255,255,255,0.65)", lineHeight: "1.6" }}>
+            {error}
+          </p>
+
+          <button onClick={handleSignInAgain} style={styles.button}>
             Sign In Again
           </button>
         </div>

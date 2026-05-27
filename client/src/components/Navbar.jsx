@@ -1,16 +1,71 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 function Navbar() {
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
 
-  const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user"));
+  const [open, setOpen] = useState(false);
+  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [user, setUser] = useState(() => {
+    const storedUser = localStorage.getItem("user");
+    return storedUser ? JSON.parse(storedUser) : null;
+  });
+
+  const fetchCurrentUser = async () => {
+    try {
+      const currentToken = localStorage.getItem("token");
+
+      setToken(currentToken);
+
+      if (!currentToken) {
+        setUser(null);
+        return;
+      }
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${currentToken}`,
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error("Failed to fetch current user:", data);
+        return;
+      }
+
+      setUser(data);
+      localStorage.setItem("user", JSON.stringify(data));
+    } catch (error) {
+      console.error("Failed to fetch current user:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCurrentUser();
+
+    const handleAuthChanged = () => {
+      fetchCurrentUser();
+    };
+
+    window.addEventListener("authChanged", handleAuthChanged);
+
+    return () => {
+      window.removeEventListener("authChanged", handleAuthChanged);
+    };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+
+    setToken(null);
+    setUser(null);
+    setOpen(false);
+
+    window.dispatchEvent(new Event("authChanged"));
+
     navigate("/login");
   };
 
@@ -47,6 +102,10 @@ function Navbar() {
                   <div style={styles.userInfo}>
                     <div style={styles.userName}>{user?.name || "User"}</div>
                     <div style={styles.userEmail}>{user?.email || ""}</div>
+
+                    {user?.role && (
+                      <div style={styles.roleBadge}>{user.role}</div>
+                    )}
                   </div>
 
                   <div style={styles.divider} />
@@ -65,16 +124,23 @@ function Navbar() {
                     style={styles.dropdownItem}
                     onClick={() => {
                       setOpen(false);
+                      navigate("/account-settings");
+                    }}
+                  >
+                    Account Settings
+                  </button>
+
+                  <button
+                    style={styles.dropdownItem}
+                    onClick={() => {
+                      setOpen(false);
                       navigate("/my-bookings");
                     }}
                   >
                     My Bookings
                   </button>
 
-                  <button
-                    style={styles.logoutItem}
-                    onClick={handleLogout}
-                  >
+                  <button style={styles.logoutItem} onClick={handleLogout}>
                     Logout
                   </button>
                 </div>
@@ -165,7 +231,7 @@ const styles = {
     position: "absolute",
     top: "50px",
     right: 0,
-    width: "230px",
+    width: "250px",
     background: "#18181b",
     border: "1px solid rgba(255,255,255,0.1)",
     borderRadius: "14px",
@@ -189,6 +255,20 @@ const styles = {
     color: "rgba(255,255,255,0.5)",
     fontSize: "12px",
     wordBreak: "break-all",
+  },
+
+  roleBadge: {
+    display: "inline-block",
+    marginTop: "8px",
+    background: "rgba(250,204,21,0.12)",
+    border: "1px solid rgba(250,204,21,0.3)",
+    color: "#facc15",
+    borderRadius: "999px",
+    padding: "4px 8px",
+    fontSize: "10px",
+    fontWeight: "900",
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
   },
 
   divider: {

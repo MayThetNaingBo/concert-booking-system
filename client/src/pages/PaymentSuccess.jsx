@@ -1,8 +1,13 @@
+import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 function PaymentSuccess() {
   const navigate = useNavigate();
   const { id } = useParams();
+
+  useEffect(() => {
+    window.dispatchEvent(new Event("authChanged"));
+  }, []);
 
   return (
     <div style={styles.page}>
@@ -17,18 +22,24 @@ function PaymentSuccess() {
 
         <div style={styles.infoBox}>
           <p style={styles.infoText}>
-            Your payment was successful. We are preparing your ticket now.
-  This usually takes a few seconds. Click “View My Ticket” to open it,
-  or check it later in My Bookings.
+            Your payment was successful. We are preparing your ticket now. This
+            usually takes a few seconds. Click “View My Ticket” to open it, or
+            check it later in My Bookings.
           </p>
         </div>
 
         <div style={styles.buttonGroup}>
-          <button style={styles.primaryButton} onClick={() => navigate(`/ticket/${id}`)}>
-            View Ticket
+          <button
+            style={styles.primaryButton}
+            onClick={() => navigate(`/ticket/${id}`)}
+          >
+            View My Ticket
           </button>
 
-          <button style={styles.secondaryButton} onClick={() => navigate("/my-bookings")}>
+          <button
+            style={styles.secondaryButton}
+            onClick={() => navigate("/my-bookings")}
+          >
             Go to My Bookings
           </button>
         </div>
