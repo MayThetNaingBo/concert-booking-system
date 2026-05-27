@@ -486,7 +486,7 @@ const styles = {
     border: "1px solid rgba(255,255,255,0.08)",
     borderRadius: "12px",
     padding: "14px",
-    color: "rgba(206, 58, 58, 0.79)",
+    color: "rgba(255, 217, 0, 0.79)",
     lineHeight: 1.6,
   },
   checkInButton: {

@@ -381,10 +381,10 @@ function Navbar() {
                       className="dropdown-item"
                       onClick={() => {
                         setOpen(false);
-                        navigate("/my-bookings");
+                        navigate("/my-tickets");
                       }}
                     >
-                      My Bookings
+                      My Tickets
                     </button>
 
                     <button className="logout-item" onClick={handleLogout}>

@@ -13,6 +13,7 @@ import VerifyTicket from "./pages/VerifyTicket";
 import StaffVerifyTicket from "./pages/StaffVerifyTicket";
 import Profile from "./pages/Profile";
 import AccountSettings from "./pages/AccountSettings";
+import MyTickets from "./pages/MyTickets";
 
 function App() {
   return (
@@ -33,7 +34,7 @@ function App() {
         <Route path="/my-bookings" element={<MyBookings />} />
         <Route path="/payment-success/:id" element={<PaymentSuccess />} />
         <Route path="/ticket/:id" element={<Ticket />} />
-
+<Route path="/my-tickets" element={<MyTickets />} />
         <Route path="/verify-ticket/:id/:secret" element={<VerifyTicket />} />
         <Route
           path="/staff/verify-ticket/:id/:secret"

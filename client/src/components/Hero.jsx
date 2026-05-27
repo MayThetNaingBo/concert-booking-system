@@ -257,7 +257,7 @@ function Hero() {
           </div>
 
           <h1 className="hero-title">
-            Feel The
+            Live The
             <span className="hero-title-highlight">Music</span>
           </h1>
 
@@ -267,7 +267,7 @@ function Hero() {
 
           <div className="hero-stats">
             <div className="hero-stat">
-              <span className="hero-stat-number">200+</span>
+              <span className="hero-stat-number">100+</span>
               <span className="hero-stat-label">Events</span>
             </div>
             <div className="hero-stat-divider" />

@@ -135,7 +135,13 @@ function ConcertDetails() {
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [hovered, setHovered] = useState(null);
   const [tooltip, setTooltip] = useState(null);
-
+  const [popup, setPopup] = useState({
+  show: false,
+  title: "",
+  message: "",
+  actionText: "",
+  actionPath: "",
+});
   const [alreadyBookedCount, setAlreadyBookedCount] = useState(0);
   const [limitMessage, setLimitMessage] = useState("");
 
@@ -341,7 +347,14 @@ function ConcertDetails() {
         });
       });
 
-      alert("Seats reserved for 1 minute 🎟");
+      setPopup({
+  show: true,
+  title: "Seats Reserved !!!",
+  message:
+    'Seats reserved for 1 minute. Please go to "My Bookings" to continue your payment.',
+  actionText: "Go to My Bookings",
+  actionPath: "/my-bookings",
+});
 
       setAlreadyBookedCount((prev) => prev + selectedSeats.length);
       setSelectedSeats([]);
@@ -674,6 +687,66 @@ function ConcertDetails() {
           background: rgba(255,255,255,0.04);
           cursor: not-allowed;
         }
+          .custom-popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.custom-popup {
+  width: 100%;
+  max-width: 430px;
+  background: #18181b;
+  border: 1px solid rgba(232,255,71,0.2);
+  border-radius: 18px;
+  padding: 28px;
+  color: white;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.65);
+  text-align: center;
+}
+
+.custom-popup h2 {
+  font-size: 26px;
+  margin-bottom: 10px;
+  color: #e8ff47;
+}
+
+.custom-popup p {
+  color: rgba(255,255,255,0.72);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.custom-popup-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.custom-popup-primary,
+.custom-popup-secondary {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+}
+
+.custom-popup-primary {
+  background: #e8ff47;
+  color: #050508;
+}
+
+.custom-popup-secondary {
+  background: rgba(255,255,255,0.08);
+  color: white;
+}
       `}</style>
 
       <div className="cd-page">
@@ -703,7 +776,7 @@ function ConcertDetails() {
 
               {token && (
                 <div className="ticket-limit-box">
-                  Ticket limit: You already have {alreadyBookedCount} active
+                  Ticket limit: You have {alreadyBookedCount} active
                   ticket(s). You can select {remainingTicketLimit} more.
                 </div>
               )}
@@ -1277,6 +1350,38 @@ function ConcertDetails() {
           </button>
         </div>
       </div>
+      {popup.show && (
+  <div className="custom-popup-overlay">
+    <div className="custom-popup">
+      <h2>{popup.title}</h2>
+      <p>{popup.message}</p>
+
+      <div className="custom-popup-actions">
+        <button
+          className="custom-popup-secondary"
+          onClick={() =>
+            setPopup({
+              show: false,
+              title: "",
+              message: "",
+              actionText: "",
+              actionPath: "",
+            })
+          }
+        >
+          Stay Here
+        </button>
+
+        <button
+          className="custom-popup-primary"
+          onClick={() => navigate(popup.actionPath)}
+        >
+          {popup.actionText}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </>
   );
 }
