@@ -127,7 +127,7 @@ function AccountSettings() {
           <p style={styles.eyebrow}>ConcertHub Account</p>
           <h1 style={styles.title}>Account Settings</h1>
           <p style={styles.subtitle}>
-            Manage your profile, security, preferences, and login session.
+            Manage your profile and security.
           </p>
         </div>
 
@@ -401,6 +401,6 @@ const styles = {
     fontWeight: "900",
     cursor: "pointer",
   },
-},
+};
 
 export default AccountSettings;
