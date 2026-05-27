@@ -72,234 +72,302 @@ function Navbar() {
   const avatarLetter = user?.name?.charAt(0).toUpperCase() || "U";
 
   return (
-    <nav style={styles.navbar}>
-      <Link to="/" style={styles.logoBox}>
-        <img src="/logo.png" alt="ConcertHub Logo" style={styles.logoImg} />
-        <span style={styles.logoText}>CONCERTHUB</span>
-      </Link>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;500;600;700;800;900&display=swap');
 
-      <div style={styles.navLinks}>
-        <Link to="/" style={styles.navLink}>
-          HOME
+        .navbar {
+          height: 70px;
+          background: #0b0b0d;
+          border-bottom: 1px solid rgba(255,255,255,0.08);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 36px;
+          position: sticky;
+          top: 0;
+          z-index: 1000;
+        }
+
+        .navbar-logo {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          text-decoration: none;
+        }
+
+        .navbar-logo img {
+          width: 42px;
+          height: 42px;
+          object-fit: cover;
+        }
+
+        .navbar-logo span {
+          font-family: 'Bebas Neue', sans-serif;
+          color: white;
+          font-weight: 900;
+          letter-spacing: 0.18em;
+          font-size: 28px;
+          line-height: 1;
+          transition: color 0.2s;
+        }
+
+        .navbar-logo:hover span {
+          color: #e8ff47;
+        }
+
+        .navbar-links {
+          display: flex;
+          align-items: center;
+          gap: 2.5rem;
+          list-style: none;
+        }
+
+        .navbar-links a,
+        .navbar-dropdown-button {
+          font-family: 'Outfit', sans-serif;
+          font-size: 0.85rem;
+          font-weight: 500;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.6);
+          text-decoration: none;
+          transition: color 0.2s;
+          position: relative;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          padding: 0;
+        }
+
+        .navbar-links a:hover,
+        .navbar-dropdown-button:hover {
+          color: #fff;
+        }
+
+        .navbar-links a::after,
+        .navbar-dropdown-button::after {
+          content: '';
+          position: absolute;
+          bottom: -4px;
+          left: 0;
+          width: 0;
+          height: 1px;
+          background: #e8ff47;
+          transition: width .3s;
+        }
+
+        .navbar-links a:hover::after,
+        .navbar-dropdown-button:hover::after {
+          width: 100%;
+        }
+
+        .profile-wrapper {
+          position: relative;
+        }
+
+        .avatar-button {
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          border: 1px solid rgba(255,255,255,0.18);
+          background: linear-gradient(135deg, #facc15, #f59e0b);
+          color: #111;
+          font-weight: 900;
+          font-size: 15px;
+          cursor: pointer;
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .avatar-button:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 0 18px rgba(232,255,71,0.25);
+        }
+
+        .dropdown {
+          position: absolute;
+          top: 50px;
+          right: 0;
+          width: 250px;
+          background: #18181b;
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 14px;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+          padding: 12px;
+          z-index: 2000;
+        }
+
+        .user-info {
+          padding: 10px 10px 12px;
+        }
+
+        .user-name {
+          color: white;
+          font-weight: 800;
+          font-size: 14px;
+          margin-bottom: 4px;
+        }
+
+        .user-email {
+          color: rgba(255,255,255,0.5);
+          font-size: 12px;
+          word-break: break-all;
+        }
+
+        .role-badge {
+          display: inline-block;
+          margin-top: 8px;
+          background: rgba(250,204,21,0.12);
+          border: 1px solid rgba(250,204,21,0.3);
+          color: #facc15;
+          border-radius: 999px;
+          padding: 4px 8px;
+          font-size: 10px;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+
+        .dropdown-divider {
+          height: 1px;
+          background: rgba(255,255,255,0.08);
+          margin: 6px 0;
+        }
+
+        .dropdown-item,
+        .logout-item {
+          width: 100%;
+          text-align: left;
+          background: transparent;
+          border: none;
+          padding: 11px 10px;
+          border-radius: 8px;
+          font-weight: 700;
+          cursor: pointer;
+          font-family: 'Outfit', sans-serif;
+          transition: background 0.2s, color 0.2s;
+        }
+
+        .dropdown-item {
+          color: rgba(255,255,255,0.78);
+        }
+
+        .dropdown-item:hover {
+          background: rgba(255,255,255,0.06);
+          color: #fff;
+        }
+
+        .logout-item {
+          color: #f87171;
+          font-weight: 800;
+        }
+
+        .logout-item:hover {
+          background: rgba(248,113,113,0.08);
+          color: #ff9b9b;
+        }
+
+        @media (max-width: 640px) {
+          .navbar {
+            padding: 0 18px;
+          }
+
+          .navbar-logo span {
+            font-size: 22px;
+            letter-spacing: 0.14em;
+          }
+
+          .navbar-links {
+            gap: 1.2rem;
+          }
+
+          .navbar-links a {
+            font-size: 0.72rem;
+          }
+        }
+      `}</style>
+
+      <nav className="navbar">
+        <Link to="/" className="navbar-logo">
+          <img src="/logo.png" alt="ConcertHub Logo" />
+          <span>CONCERTHUB</span>
         </Link>
 
-        {token ? (
-          <>
-            <Link to="/my-bookings" style={styles.navLink}>
-              MY BOOKINGS
-            </Link>
+        <div className="navbar-links">
+          <Link to="/">HOME</Link>
 
-            <div style={styles.profileWrapper}>
-              <button
-                onClick={() => setOpen(!open)}
-                style={styles.avatarButton}
-              >
-                {avatarLetter}
-              </button>
+          {token ? (
+            <>
+              <Link to="/my-bookings">MY BOOKINGS</Link>
 
-              {open && (
-                <div style={styles.dropdown}>
-                  <div style={styles.userInfo}>
-                    <div style={styles.userName}>{user?.name || "User"}</div>
-                    <div style={styles.userEmail}>{user?.email || ""}</div>
+              <div className="profile-wrapper">
+                <button
+                  onClick={() => setOpen(!open)}
+                  className="avatar-button"
+                >
+                  {avatarLetter}
+                </button>
 
-                    {user?.role && (
-                      <div style={styles.roleBadge}>{user.role}</div>
-                    )}
+                {open && (
+                  <div className="dropdown">
+                    <div className="user-info">
+                      <div className="user-name">{user?.name || "User"}</div>
+                      <div className="user-email">{user?.email || ""}</div>
+
+                      {user?.role && (
+                        <div className="role-badge">{user.role}</div>
+                      )}
+                    </div>
+
+                    <div className="dropdown-divider" />
+
+                    <button
+                      className="dropdown-item"
+                      onClick={() => {
+                        setOpen(false);
+                        navigate("/profile");
+                      }}
+                    >
+                      My Profile
+                    </button>
+
+                    <button
+                      className="dropdown-item"
+                      onClick={() => {
+                        setOpen(false);
+                        navigate("/account-settings");
+                      }}
+                    >
+                      Account Settings
+                    </button>
+
+                    <button
+                      className="dropdown-item"
+                      onClick={() => {
+                        setOpen(false);
+                        navigate("/my-bookings");
+                      }}
+                    >
+                      My Bookings
+                    </button>
+
+                    <button className="logout-item" onClick={handleLogout}>
+                      Logout
+                    </button>
                   </div>
-
-                  <div style={styles.divider} />
-
-                  <button
-                    style={styles.dropdownItem}
-                    onClick={() => {
-                      setOpen(false);
-                      navigate("/profile");
-                    }}
-                  >
-                    My Profile
-                  </button>
-
-                  <button
-                    style={styles.dropdownItem}
-                    onClick={() => {
-                      setOpen(false);
-                      navigate("/account-settings");
-                    }}
-                  >
-                    Account Settings
-                  </button>
-
-                  <button
-                    style={styles.dropdownItem}
-                    onClick={() => {
-                      setOpen(false);
-                      navigate("/my-bookings");
-                    }}
-                  >
-                    My Bookings
-                  </button>
-
-                  <button style={styles.logoutItem} onClick={handleLogout}>
-                    Logout
-                  </button>
-                </div>
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            <Link to="/login" style={styles.navLink}>
-              SIGN IN
-            </Link>
-
-            <Link to="/register" style={styles.navLink}>
-              SIGN UP
-            </Link>
-          </>
-        )}
-      </div>
-    </nav>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <Link to="/login">SIGN IN</Link>
+              <Link to="/register">SIGN UP</Link>
+            </>
+          )}
+        </div>
+      </nav>
+    </>
   );
 }
-
-const styles = {
-  navbar: {
-    height: "70px",
-    background: "#0b0b0d",
-    borderBottom: "1px solid rgba(255,255,255,0.08)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "0 36px",
-    position: "sticky",
-    top: 0,
-    zIndex: 1000,
-  },
-
-  logoBox: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    textDecoration: "none",
-  },
-
-  logoImg: {
-    width: "42px",
-    height: "42px",
-    objectFit: "cover",
-  },
-
-  logoText: {
-    color: "white",
-    fontWeight: "900",
-    letterSpacing: "0.14em",
-    fontSize: "22px",
-  },
-
-  navLinks: {
-    display: "flex",
-    alignItems: "center",
-    gap: "32px",
-  },
-
-  navLink: {
-    color: "rgba(255,255,255,0.72)",
-    textDecoration: "none",
-    fontSize: "13px",
-    fontWeight: "800",
-    letterSpacing: "0.1em",
-  },
-
-  profileWrapper: {
-    position: "relative",
-  },
-
-  avatarButton: {
-    width: "38px",
-    height: "38px",
-    borderRadius: "50%",
-    border: "1px solid rgba(255,255,255,0.18)",
-    background: "linear-gradient(135deg, #facc15, #f59e0b)",
-    color: "#111",
-    fontWeight: "900",
-    fontSize: "15px",
-    cursor: "pointer",
-  },
-
-  dropdown: {
-    position: "absolute",
-    top: "50px",
-    right: 0,
-    width: "250px",
-    background: "#18181b",
-    border: "1px solid rgba(255,255,255,0.1)",
-    borderRadius: "14px",
-    boxShadow: "0 20px 50px rgba(0,0,0,0.45)",
-    padding: "12px",
-    zIndex: 2000,
-  },
-
-  userInfo: {
-    padding: "10px 10px 12px",
-  },
-
-  userName: {
-    color: "white",
-    fontWeight: "800",
-    fontSize: "14px",
-    marginBottom: "4px",
-  },
-
-  userEmail: {
-    color: "rgba(255,255,255,0.5)",
-    fontSize: "12px",
-    wordBreak: "break-all",
-  },
-
-  roleBadge: {
-    display: "inline-block",
-    marginTop: "8px",
-    background: "rgba(250,204,21,0.12)",
-    border: "1px solid rgba(250,204,21,0.3)",
-    color: "#facc15",
-    borderRadius: "999px",
-    padding: "4px 8px",
-    fontSize: "10px",
-    fontWeight: "900",
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
-  },
-
-  divider: {
-    height: "1px",
-    background: "rgba(255,255,255,0.08)",
-    margin: "6px 0",
-  },
-
-  dropdownItem: {
-    width: "100%",
-    textAlign: "left",
-    background: "transparent",
-    color: "rgba(255,255,255,0.78)",
-    border: "none",
-    padding: "11px 10px",
-    borderRadius: "8px",
-    fontWeight: "700",
-    cursor: "pointer",
-  },
-
-  logoutItem: {
-    width: "100%",
-    textAlign: "left",
-    background: "transparent",
-    color: "#f87171",
-    border: "none",
-    padding: "11px 10px",
-    borderRadius: "8px",
-    fontWeight: "800",
-    cursor: "pointer",
-  },
-};
 
 export default Navbar;
