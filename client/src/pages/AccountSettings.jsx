@@ -60,11 +60,6 @@ function AccountSettings() {
       return;
     }
 
-    if (passwords.newPassword.length < 6) {
-      alert("New password must be at least 6 characters.");
-      return;
-    }
-
     try {
       const token = localStorage.getItem("token");
 
@@ -87,7 +82,8 @@ function AccountSettings() {
 
       if (!res.ok) {
         alert(data.message || "Failed to change password.");
-        return;
+       navigate("/Home");
+          return;
       }
 
       setPasswords({
