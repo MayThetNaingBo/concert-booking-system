@@ -5,10 +5,8 @@ function AccountSettings() {
   const navigate = useNavigate();
 
   const [user, setUser] = useState(null);
-  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
- 
   const [passwords, setPasswords] = useState({
     currentPassword: "",
     newPassword: "",
@@ -36,6 +34,7 @@ function AccountSettings() {
         if (!res.ok) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
+          window.dispatchEvent(new Event("authChanged"));
           navigate("/login");
           return;
         }
@@ -43,10 +42,8 @@ function AccountSettings() {
         setUser(data);
         localStorage.setItem("user", JSON.stringify(data));
         window.dispatchEvent(new Event("authChanged"));
-
-       
       } catch (error) {
-        setMessage("Unable to load account settings.");
+        alert("Unable to load account settings.");
       } finally {
         setLoading(false);
       }
@@ -55,18 +52,16 @@ function AccountSettings() {
     fetchCurrentUser();
   }, [navigate]);
 
-  
   const handlePasswordChange = async (e) => {
     e.preventDefault();
-    setMessage("");
 
     if (passwords.newPassword !== passwords.confirmPassword) {
-      setMessage("New password and confirm password do not match.");
+      alert("New password and confirm password do not match.");
       return;
     }
 
     if (passwords.newPassword.length < 6) {
-      setMessage("New password must be at least 6 characters.");
+      alert("New password must be at least 6 characters.");
       return;
     }
 
@@ -91,7 +86,7 @@ function AccountSettings() {
       const data = await res.json();
 
       if (!res.ok) {
-        setMessage(data.message || "Failed to change password.");
+        alert(data.message || "Failed to change password.");
         return;
       }
 
@@ -101,12 +96,11 @@ function AccountSettings() {
         confirmPassword: "",
       });
 
-      setMessage("Password changed successfully.");
+      alert("Password changed successfully.");
     } catch (error) {
-      setMessage("Something went wrong while changing password.");
+      alert("Something went wrong while changing password.");
     }
   };
-
 
   if (loading) {
     return (
@@ -126,12 +120,8 @@ function AccountSettings() {
         <div style={styles.header}>
           <p style={styles.eyebrow}>ConcertHub Account</p>
           <h1 style={styles.title}>Account Settings</h1>
-          <p style={styles.subtitle}>
-            Manage your profile and security.
-          </p>
+          <p style={styles.subtitle}>Manage your profile and security.</p>
         </div>
-
-        {message && <div style={styles.message}>{message}</div>}
 
         <section style={styles.card}>
           <div style={styles.sectionHeader}>
@@ -270,16 +260,6 @@ const styles = {
     color: "rgba(255,255,255,0.62)",
     marginTop: "10px",
     lineHeight: "1.6",
-  },
-
-  message: {
-    background: "rgba(232,160,32,0.12)",
-    border: "1px solid rgba(232,160,32,0.32)",
-    color: "#fbbf24",
-    padding: "14px 16px",
-    borderRadius: "12px",
-    marginBottom: "18px",
-    fontWeight: "700",
   },
 
   card: {
