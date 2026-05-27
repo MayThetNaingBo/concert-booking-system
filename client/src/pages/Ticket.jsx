@@ -39,31 +39,37 @@ const styles = `
   }
 
   .ticket-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px 30px 18px;
-    border-bottom: 1px solid rgba(255,255,255,0.07);
-  }
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 30px;
+  background: #050505;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
 
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .header-left img {
-          width: 42px;
-          height: 42px;
-          object-fit: cover;
-        }
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
+.header-left img {
+  width: 42px;
+  height: 42px;
+  object-fit: cover;
+  display: block;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
   .header-title {
-    font-family: 'Bebas Neue', cursive;
-    font-size: 19px;
-    letter-spacing: 0.15em;
-    color: #fff;
-  }
-
+  font-family: 'Bebas Neue', cursive;
+  font-size: 20px;
+  letter-spacing: 0.16em;
+  color: #fff;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
   .header-badge {
     font-size: 10px;
     font-weight: 700;
