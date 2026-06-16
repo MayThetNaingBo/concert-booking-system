@@ -104,7 +104,7 @@ function Hero() {
           background: #e8ff47;
         }
 
-        .hero-title {
+        .git  p {
           font-family: 'Bebas Neue', sans-serif;
           font-size: clamp(4.5rem, 12vw, 10rem);
           line-height: 0.92;
