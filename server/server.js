@@ -10,8 +10,8 @@ app.use(cors({
 
     const allowedOrigins = [
       "http://localhost:5173",
-      "https://concerthub.yhwinfo.xyz",
-      "https://concert-booking-system-zy61.vercel.app"
+      "https://concerthub.maythetnaingbo.com",
+  process.env.CLIENT_URL,
     ];
 
     if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
