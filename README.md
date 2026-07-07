@@ -193,8 +193,7 @@ Cloudinary
 
 ## Author
 
-**May Thet Naing Bo**
-
-Diploma in Information Technology (Software Development)
-Temasek Polytechnic
-https:maythetnaingbo.com
+**May Thet Naing Bo**<br>
+Diploma in Information Technology<br>
+Temasek Polytechnic<br>
+🌐 https://maythetnaingbo.com
