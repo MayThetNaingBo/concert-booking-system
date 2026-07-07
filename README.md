@@ -195,4 +195,6 @@ Cloudinary
 
 **May Thet Naing Bo**
 
-Software Developer passionate about Full-Stack Development, DevOps, Cloud Technologies, and AI-powered Applications.
+Diploma in Information Technology (Software Development)
+Temasek Polytechnic
+https:maythetnaingbo.com
